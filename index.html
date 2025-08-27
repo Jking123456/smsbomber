@@ -35,13 +35,23 @@
       margin-bottom: 15px;
       font-size: clamp(20px, 5vw, 28px);
     }
-    input[type="text"] {
+    /* Fixed Input Field */
+    input[type="tel"] {
       width: 100%;
-      padding: 12px;
-      margin: 10px 0;
+      max-width: 350px;
+      padding: 12px 14px;
+      margin: 10px auto;
       border: 1px solid #ccc;
-      border-radius: 8px;
+      border-radius: 10px;
       font-size: 16px;
+      display: block;
+      box-sizing: border-box;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    input[type="tel"]:focus {
+      border-color: #4CAF50;
+      box-shadow: 0 0 6px rgba(76, 175, 80, 0.4);
+      outline: none;
     }
     .slider-container {
       margin: 15px 0;
@@ -156,7 +166,7 @@
 <body>
   <div class="container">
     <h1>📱 SMS Bomber</h1>
-    <input type="text" id="phone" placeholder="Enter phone number" required />
+    <input type="tel" id="phone" placeholder="📞 Enter phone number" required />
 
     <!-- Slider for SMS amount -->
     <div class="slider-container">
