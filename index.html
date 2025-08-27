@@ -10,17 +10,18 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      min-height: 100vh;
       margin: 0;
       background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
       flex-direction: column;
+      padding: 10px;
     }
     .container {
       width: 100%;
       max-width: 450px;
       text-align: center;
       background: #fff;
-      padding: 30px;
+      padding: 20px;
       border-radius: 15px;
       box-shadow: 0 8px 25px rgba(0,0,0,0.15);
       animation: fadeIn 0.6s ease-in-out;
@@ -31,7 +32,8 @@
     }
     h1 {
       color: #333;
-      margin-bottom: 20px;
+      margin-bottom: 15px;
+      font-size: clamp(20px, 5vw, 28px);
     }
     input[type="text"] {
       width: 100%;
@@ -44,9 +46,9 @@
     .slider-container {
       margin: 15px 0;
       text-align: left;
+      font-size: 14px;
     }
     .slider-container label {
-      font-size: 14px;
       font-weight: bold;
     }
     input[type="range"] {
@@ -61,11 +63,13 @@
       background: #4CAF50;
       border: none;
       color: #fff;
-      padding: 12px 24px;
+      padding: 12px 20px;
       font-size: 16px;
       border-radius: 8px;
       cursor: pointer;
       transition: background 0.3s ease;
+      width: 100%;
+      max-width: 250px;
     }
     button:hover {
       background: #43a047;
@@ -80,14 +84,18 @@
       margin-top: 15px;
       font-size: 14px;
       font-weight: 500;
+      word-wrap: break-word;
     }
     .success { color: green; }
     .error { color: red; }
+    .table-wrapper {
+      overflow-x: auto;
+      margin-top: 15px;
+    }
     table {
-      margin: 15px auto;
       border-collapse: collapse;
       width: 100%;
-      max-width: 400px;
+      min-width: 300px;
     }
     table, th, td {
       border: 1px solid #ddd;
@@ -95,6 +103,7 @@
     th, td {
       padding: 8px;
       text-align: center;
+      font-size: 14px;
     }
     th {
       background: #f4f4f4;
@@ -126,7 +135,21 @@
     .fb-icon {
       width: 16px;
       height: 16px;
-      fill: #1877F2; /* Official Facebook blue */
+      fill: #1877F2;
+    }
+    /* Mobile adjustments */
+    @media (max-width: 480px) {
+      .container {
+        padding: 15px;
+      }
+      button {
+        font-size: 14px;
+        padding: 10px;
+      }
+      th, td {
+        font-size: 12px;
+        padding: 6px;
+      }
     }
   </style>
 </head>
@@ -146,7 +169,7 @@
     <button onclick="sendSMS()">🚀 Send SMS</button>
     <p class="caution">⚠️ This tool is for <b>pranks only</b>. Use responsibly!</p>
     <p id="status"></p>
-    <div id="results"></div>
+    <div class="table-wrapper" id="results"></div>
   </div>
 
   <!-- Sticky Footer -->
@@ -162,7 +185,6 @@
   </footer>
 
   <script>
-    // Update slider value in real-time
     function updateAmount(val) {
       document.getElementById("amountValue").textContent = val;
     }
@@ -173,7 +195,7 @@
       const statusEl = document.getElementById("status");
       const resultsEl = document.getElementById("results");
 
-      resultsEl.innerHTML = ""; // Clear old results
+      resultsEl.innerHTML = "";
 
       if (!phone) {
         statusEl.textContent = "❌ Please enter a phone number.";
@@ -191,9 +213,7 @@
       statusEl.className = "";
 
       try {
-        // Build target API URL
         const targetUrl = `https://haji-mix.up.railway.app/api/smsbomber?phone=${phone}&amount=${amount}`;
-        // Wrap it with CORS proxy
         const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`;
 
         const response = await fetch(proxyUrl);
@@ -206,7 +226,6 @@
           statusEl.textContent = `✅ Success! ${data.message}`;
           statusEl.className = "success";
 
-          // Build results table
           let tableHTML = `
             <table>
               <tr><th>Service</th><th>Status</th></tr>
