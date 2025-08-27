@@ -93,6 +93,16 @@
       margin-top: 15px;
       font-size: 14px;
     }
+    .warning {
+      background: #fff3cd;
+      border: 1px solid #ffecb5;
+      color: #856404;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-top: 12px;
+      text-align: left;
+    }
     #status {
       margin-top: 15px;
       font-size: 14px;
@@ -198,6 +208,14 @@
 
     <button id="sendBtn" onclick="sendSMS()">🚀 Send SMS</button>
     <p class="caution">⚠️ This tool is for <b>pranks only</b>. Use responsibly!</p>
+    
+    <!-- Added Warning -->
+    <div class="warning">
+      ⚠️ <b>Warning:</b> This tool can send <u>massive SMS messages</u> to various services. 
+      Misuse may cause disruption, spam, or account issues. Use it <b>only</b> for harmless fun with friends 
+      and never against someone without consent.
+    </div>
+
     <p id="status"></p>
     <div id="loading" style="display:none;"><div class="spinner"></div></div>
     <div class="table-wrapper" id="results"></div>
