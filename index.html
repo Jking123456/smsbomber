@@ -3,162 +3,66 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SMS BOMBER</title>
-
-  <!-- Google Font -->
+  <title>Send OTP - Bomba API</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-
   <style>
-    * {
-      box-sizing: border-box;
-      font-family: "Poppins", sans-serif;
-    }
-
+    * { box-sizing: border-box; font-family: "Poppins", sans-serif; }
     body {
       background: linear-gradient(135deg, #0a192f, #112240);
-      margin: 0;
-      padding: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      color: #fff;
+      margin: 0; padding: 0;
+      display: flex; align-items: center; justify-content: center;
+      height: 100vh; color: #fff;
     }
-
     .container {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255,255,255,0.05);
       backdrop-filter: blur(10px);
-      border-radius: 16px;
-      padding: 30px;
-      width: 90%;
-      max-width: 420px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-      text-align: center;
+      border-radius: 16px; padding: 30px;
+      width: 90%; max-width: 420px; text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     }
-
-    h1 {
-      font-size: 1.6rem;
-      margin-bottom: 10px;
-      color: #64ffda;
-    }
-
-    p {
-      font-size: 0.9rem;
-      color: #ccd6f6;
-      margin-bottom: 25px;
-    }
-
-    .input-group {
-      margin-bottom: 20px;
-      text-align: left;
-    }
-
-    label {
-      font-weight: 600;
-      display: block;
-      margin-bottom: 5px;
-      color: #8892b0;
-    }
-
+    h1 { color: #64ffda; font-size: 1.6rem; margin-bottom: 10px; }
+    p { color: #ccd6f6; font-size: 0.9rem; margin-bottom: 25px; }
+    label { display: block; text-align: left; margin-bottom: 5px; color: #8892b0; font-weight: 600; }
     input {
-      width: 100%;
-      padding: 12px 14px;
-      border-radius: 8px;
-      border: none;
-      outline: none;
-      font-size: 1rem;
-      background-color: rgba(255, 255, 255, 0.1);
-      color: #fff;
-      transition: all 0.3s ease;
+      width: 100%; padding: 12px 14px; border-radius: 8px;
+      border: none; outline: none; background: rgba(255,255,255,0.1);
+      color: #fff; transition: 0.3s;
     }
-
-    input:focus {
-      background-color: rgba(255, 255, 255, 0.2);
-    }
-
+    input:focus { background: rgba(255,255,255,0.2); }
     button {
-      width: 100%;
-      padding: 12px;
-      border: none;
-      border-radius: 8px;
-      background-color: #64ffda;
-      color: #0a192f;
-      font-weight: 600;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: all 0.3s ease;
+      width: 100%; padding: 12px; border: none; border-radius: 8px;
+      background: #64ffda; color: #0a192f; font-weight: 600;
+      cursor: pointer; transition: 0.3s;
     }
-
-    button:hover {
-      background-color: #52e0c4;
-    }
-
+    button:hover { background: #52e0c4; }
     .response-box {
-      margin-top: 20px;
-      padding: 15px;
-      border-radius: 10px;
-      display: none;
-      font-size: 0.95rem;
+      margin-top: 20px; padding: 15px; border-radius: 10px; display: none;
     }
-
-    .response-success {
-      background-color: rgba(100, 255, 218, 0.1);
-      border: 1px solid #64ffda;
-      color: #64ffda;
-    }
-
-    .response-error {
-      background-color: rgba(255, 100, 100, 0.1);
-      border: 1px solid #ff6464;
-      color: #ff6464;
-    }
-
+    .response-success { background: rgba(100,255,218,0.1); border: 1px solid #64ffda; color: #64ffda; }
+    .response-error { background: rgba(255,100,100,0.1); border: 1px solid #ff6464; color: #ff6464; }
     .loader {
-      border: 3px solid rgba(255, 255, 255, 0.2);
+      border: 3px solid rgba(255,255,255,0.2);
       border-top: 3px solid #64ffda;
-      border-radius: 50%;
-      width: 25px;
-      height: 25px;
-      animation: spin 1s linear infinite;
-      display: none;
-      margin: 0 auto;
+      border-radius: 50%; width: 25px; height: 25px;
+      animation: spin 1s linear infinite; display: none; margin: 15px auto;
     }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    footer {
-      text-align: center;
-      font-size: 0.8rem;
-      margin-top: 15px;
-      color: #8892b0;
-    }
-
+    @keyframes spin { 0% { transform: rotate(0); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>SMS BOMBER</h1>
-    <p>Enter the phone number and time interval to send OTPs via API.</p>
+    <h1>Send OTP</h1>
+    <p>Use this tool to send OTPs via secure API proxy.</p>
 
-    <div class="input-group">
-      <label for="phone">Phone Number</label>
-      <input type="text" id="phone" placeholder="e.g. 09958229099">
-    </div>
+    <label>Phone Number</label>
+    <input type="text" id="phone" placeholder="e.g. 09958229099">
 
-    <div class="input-group">
-      <label for="seconds">Seconds</label>
-      <input type="number" id="seconds" placeholder="e.g. 10">
-    </div>
+    <label>Seconds</label>
+    <input type="number" id="seconds" placeholder="e.g. 10">
 
     <button id="sendBtn">Send OTP</button>
-
     <div class="loader" id="loader"></div>
     <div class="response-box" id="responseBox"></div>
-
-    <footer>Created by Homer © 2025</footer>
   </div>
 
   <script>
@@ -171,9 +75,8 @@
       const seconds = document.getElementById("seconds").value.trim();
 
       responseBox.style.display = "none";
-
       if (!phone || !seconds) {
-        showResponse(false, "Please enter both phone number and seconds.");
+        showResponse(false, "Please fill in both fields.");
         return;
       }
 
@@ -181,26 +84,20 @@
       sendBtn.disabled = true;
 
       try {
-        const res = await fetch("https://bomba-vrl7.onrender.com/send-otp", {
+        const res = await fetch("/api/send-otp", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            phone_no: phone,
-            seconds: parseInt(seconds),
-          }),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone_no: phone, seconds: parseInt(seconds) }),
         });
-
         const data = await res.json();
 
         if (data.success) {
           showResponse(true, data.message);
         } else {
-          showResponse(false, data.error || "Request failed.");
+          showResponse(false, data.error || "Failed to send OTP.");
         }
-      } catch (error) {
-        showResponse(false, "An error occurred while sending request.");
+      } catch (err) {
+        showResponse(false, "Backend error occurred.");
       } finally {
         loader.style.display = "none";
         sendBtn.disabled = false;
