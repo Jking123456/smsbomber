@@ -4,33 +4,62 @@ html, body {
   scroll-behavior: smooth;
 }
 
-.input-field {
+.card {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.06);
+  padding: 2rem;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+}
+
+.card-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.5rem;
+}
+
+.label {
+  display: block;
+  font-size: 0.875rem;
+  color: #4b5563;
+  margin-bottom: 0.25rem;
+}
+
+.input {
   width: 100%;
-  padding: 0.65rem 1rem;
+  padding: 0.6rem 1rem;
   border: 1px solid #d1d5db;
   border-radius: 0.5rem;
   background-color: #f9fafb;
   transition: all 0.2s ease-in-out;
 }
 
-.input-field:focus {
-  border-color: #4F46E5;
+.input:focus {
+  border-color: #4f46e5;
   background-color: #fff;
-  outline: none;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  outline: none;
 }
 
 .btn-primary {
-  background: linear-gradient(to right, #4F46E5, #6366F1);
+  background: linear-gradient(to right, #4f46e5, #6366f1);
   color: white;
   font-weight: 600;
   padding: 0.75rem 1rem;
   border-radius: 0.5rem;
   transition: all 0.25s ease;
+  text-align: center;
 }
 
 .btn-primary:hover {
-  background: linear-gradient(to right, #4338CA, #4F46E5);
+  background: linear-gradient(to right, #4338ca, #4f46e5);
   transform: translateY(-1px);
 }
 
@@ -39,14 +68,21 @@ html, body {
   cursor: not-allowed;
 }
 
-.card {
-  background-color: white;
-  border-radius: 1rem;
-  box-shadow: 0 5px 25px rgba(0,0,0,0.08);
-  transition: all 0.3s ease;
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Mobile adjustments */
+@media (max-width: 640px) {
+  .card {
+    padding: 1.5rem;
+  }
+  .card-title {
+    font-size: 1.25rem;
+  }
 }
