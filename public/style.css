@@ -1,91 +1,165 @@
-html, body {
+/* General Reset */
+* {
   margin: 0;
-  font-family: 'Inter', sans-serif;
-  scroll-behavior: smooth;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-/* --- Card Styling --- */
-.card {
-  background: white;
-  border-radius: 1.25rem;
-  box-shadow: 0 5px 30px rgba(0, 0, 0, 0.06);
-  padding: 2rem;
-  transition: all 0.3s ease;
-}
-.card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
+html, body {
+  font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+  background: linear-gradient(135deg, #f8faff, #eef2ff);
+  color: #333;
+  min-height: 100vh;
 }
 
-/* --- Titles --- */
-.card-title {
-  font-size: 1.5rem;
+/* Header */
+.header {
+  text-align: center;
+  padding: 2rem 1rem 1rem;
+}
+
+.header-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.header h1 {
+  font-size: 2rem;
   font-weight: 700;
-  color: #1f2937;
-  border-bottom: 2px solid #e5e7eb;
-  padding-bottom: 0.5rem;
-}
-
-/* --- Labels & Inputs --- */
-.label {
-  display: block;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #4b5563;
+  color: #1a1a1a;
   margin-bottom: 0.3rem;
 }
 
-.input {
-  width: 100%;
-  padding: 0.65rem 1rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.5rem;
-  background-color: #f9fafb;
-  transition: all 0.25s ease-in-out;
-}
-.input:focus {
-  border-color: #4F46E5;
-  background-color: #fff;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
-  outline: none;
+.subtitle {
+  font-size: 0.95rem;
+  color: #555;
 }
 
-/* --- Buttons --- */
-.btn-primary {
-  background: linear-gradient(to right, #4F46E5, #6366F1);
-  color: white;
+/* Container */
+.container {
+  max-width: 950px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .container {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Card */
+.card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.8rem;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+}
+
+.card h2 {
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+  color: #222;
+}
+
+/* Form Styling */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.form label {
+  font-weight: 600;
+  color: #444;
+  font-size: 0.9rem;
+}
+
+.form input {
+  padding: 0.7rem 1rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.form input:focus {
+  border-color: #4c6ef5;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(76,110,245,0.2);
+}
+
+/* Message Area */
+.message-area {
+  min-height: 24px;
+  font-size: 0.9rem;
+  text-align: center;
+  color: #4c6ef5;
+  font-weight: 500;
+}
+
+/* Button */
+button {
+  background: #4c6ef5;
+  color: #fff;
   font-weight: 600;
   padding: 0.8rem 1rem;
-  border-radius: 0.6rem;
-  transition: all 0.25s ease;
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
-.btn-primary:hover {
-  background: linear-gradient(to right, #4338CA, #4F46E5);
-  transform: translateY(-1px);
+
+button:hover {
+  background: #3b5bdb;
 }
-.btn-primary:disabled {
+
+button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-/* --- Fade Animations --- */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.animate-fadeIn {
-  animation: fadeIn 0.5s ease-in-out;
+/* Stats */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-/* --- Responsive --- */
-@media (max-width: 640px) {
-  .card {
-    padding: 1.5rem;
-  }
-  .card-title {
-    font-size: 1.3rem;
-  }
+.refresh {
+  background: none;
+  border: none;
+  color: #4c6ef5;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: color 0.3s;
+}
+
+.refresh:hover {
+  color: #364fc7;
+}
+
+.stats {
+  margin-top: 1rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+/* Footer */
+.footer {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #666;
+  font-size: 0.85rem;
+  margin-top: 2rem;
 }
