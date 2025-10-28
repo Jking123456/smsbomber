@@ -1,109 +1,77 @@
-const form = document.getElementById('otpForm');
-const phoneNumberInput = document.getElementById('phoneNumber');
-const amountInput = document.getElementById('amount');
-const messageArea = document.getElementById('messageArea');
-const sendButton = document.getElementById('sendButton');
-const statsContent = document.getElementById('statsContent');
-const refreshBtn = document.getElementById('refreshStats');
+const form = document.getElementById("otpForm");
+const phoneNumberInput = document.getElementById("phoneNumber");
+const amountInput = document.getElementById("amount");
+const messageArea = document.getElementById("messageArea");
+const sendButton = document.getElementById("sendButton");
+const statsContent = document.getElementById("statsContent");
+const refreshStats = document.getElementById("refreshStats");
 
-function displayMessage(type, message) {
-  const colors = {
-    success: 'bg-green-100 border-green-400 text-green-700',
-    error: 'bg-red-100 border-red-400 text-red-700',
-    info: 'bg-blue-100 border-blue-400 text-blue-700',
-  };
-  messageArea.innerHTML = `
-    <div class="p-3 border rounded-lg text-sm ${colors[type]} animate-fadeIn">${message}</div>
-  `;
+// Show messages
+function showMessage(type, text) {
+  messageArea.style.color =
+    type === "error" ? "#e11d48" : type === "success" ? "#16a34a" : "#4f46e5";
+  messageArea.textContent = text;
 }
 
-async function sendOTP(event) {
-  event.preventDefault();
-
+// Send SMS
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
   const phoneNumber = phoneNumberInput.value.trim();
   const amount = parseInt(amountInput.value.trim(), 10);
 
   if (!phoneNumber || phoneNumber.length < 10) {
-    displayMessage('error', 'Please enter a valid phone number.');
+    showMessage("error", "Enter a valid phone number.");
     return;
   }
-
   if (isNaN(amount) || amount <= 0) {
-    displayMessage('error', 'Please enter a valid amount.');
+    showMessage("error", "Enter a valid amount greater than 0.");
     return;
   }
 
   sendButton.disabled = true;
-  sendButton.innerHTML = 'Sending...';
-  displayMessage('info', 'Sending SMS...');
+  sendButton.textContent = "Sending...";
+  showMessage("info", "Sending SMS...");
 
   try {
-    const response = await fetch('/api/send-sms', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch("/api/send-sms", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ phoneNumber, amount }),
     });
 
-    const result = await response.json();
-
-    if (response.ok) {
-      displayMessage('success', `✅ SMS sent successfully! Message: ${result.message || 'Success'}`);
-      fetchStats();
-    } else {
-      displayMessage('error', result.message || 'Failed to send SMS.');
-    }
-  } catch (err) {
-    console.error(err);
-    displayMessage('error', 'Network error. Please try again.');
+    const data = await res.json();
+    if (res.ok) showMessage("success", "✅ SMS sent successfully!");
+    else showMessage("error", data.message || "Failed to send SMS.");
+  } catch {
+    showMessage("error", "Network error. Try again later.");
   } finally {
     sendButton.disabled = false;
-    sendButton.innerHTML = 'Send SMS';
+    sendButton.textContent = "✈️ Send SMS";
   }
-}
+});
 
-async function fetchStats() {
-  statsContent.innerHTML = '<p class="text-gray-400 italic">Fetching stats...</p>';
+// Load API stats
+async function loadStats() {
+  statsContent.textContent = "Loading...";
   try {
-    const response = await fetch('/api/stats');
-    const data = await response.json();
+    const res = await fetch("/api/stats");
+    const data = await res.json();
 
-    if (!response.ok || !data.success) {
-      statsContent.innerHTML = `<p class="text-red-600">Failed to load stats.</p>`;
-      return;
+    if (data.success && data.data) {
+      const { totalRequests, endpoints } = data.data;
+      let html = `<p><strong>Total Requests:</strong> ${totalRequests}</p><ul>`;
+      for (const [name, count] of Object.entries(endpoints)) {
+        html += `<li>${name}: <strong>${count}</strong></li>`;
+      }
+      html += "</ul>";
+      statsContent.innerHTML = html;
+    } else {
+      statsContent.textContent = "Failed to load stats.";
     }
-
-    const { totalRequests, endpoints, lastUpdated } = data.data;
-    const updatedDate = new Date(lastUpdated).toLocaleString();
-
-    const endpointGrid = Object.entries(endpoints)
-      .map(([name, count]) => `
-        <div class="flex justify-between border-b border-gray-100 py-2">
-          <span class="text-gray-600">${name}</span>
-          <span class="font-semibold text-indigo-700">${count}</span>
-        </div>
-      `).join('');
-
-    statsContent.innerHTML = `
-      <div class="space-y-3 animate-fadeIn">
-        <p class="font-medium text-lg text-gray-700">Total Requests: <span class="font-bold text-indigo-600">${totalRequests}</span></p>
-        <div class="text-left divide-y divide-gray-100">${endpointGrid}</div>
-        <p class="text-xs text-gray-400 mt-2">Last Updated: ${updatedDate}</p>
-      </div>
-    `;
-  } catch (error) {
-    console.error('Error loading stats:', error);
-    statsContent.innerHTML = `<p class="text-red-600">Error loading stats.</p>`;
+  } catch {
+    statsContent.textContent = "Error loading stats.";
   }
 }
 
-// Small fade animation
-const style = document.createElement('style');
-style.innerHTML = `
-  @keyframes fadeIn { from {opacity: 0;} to {opacity: 1;} }
-  .animate-fadeIn { animation: fadeIn 0.4s ease-in-out; }
-`;
-document.head.appendChild(style);
-
-form.addEventListener('submit', sendOTP);
-refreshBtn.addEventListener('click', fetchStats);
-window.addEventListener('DOMContentLoaded', fetchStats);
+refreshStats.addEventListener("click", loadStats);
+window.addEventListener("load", loadStats);
