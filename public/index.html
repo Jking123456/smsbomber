@@ -3,23 +3,33 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Send OTP - Bomba API</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Send Verification SMS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="styles.css" />
 </head>
-<body>
-  <div class="container">
-    <h1>Send OTP</h1>
-    <p>Enter the phone number and interval to send OTP.</p>
 
-    <label>Phone Number</label>
-    <input type="text" id="phone" placeholder="09958229099" />
+<body class="bg-gray-50 flex items-center justify-center p-4">
+  <div class="w-full max-w-sm bg-white shadow-xl rounded-xl p-8 space-y-6">
+    <div class="text-center">
+      <h1 class="text-3xl font-bold text-gray-800">Send Verification Code</h1>
+      <p class="mt-2 text-sm text-gray-500">Enter the phone number and amount.</p>
+    </div>
 
-    <label>Seconds</label>
-    <input type="number" id="seconds" placeholder="10" />
+    <form id="otpForm" class="space-y-5">
+      <div>
+        <label for="phoneNumber" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+        <input id="phoneNumber" type="tel" placeholder="09123456789" required maxlength="11" class="input-field" />
+      </div>
 
-    <button id="sendBtn">Send OTP</button>
-    <div class="loader" id="loader"></div>
-    <div class="response-box" id="responseBox"></div>
+      <div>
+        <label for="amount" class="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+        <input id="amount" type="number" placeholder="1" required min="1" value="1" class="input-field" />
+      </div>
+
+      <div id="messageArea" class="min-h-[2.5rem]"></div>
+
+      <button id="sendButton" type="submit" class="btn-primary">Send SMS</button>
+    </form>
   </div>
 
   <script src="script.js"></script>
