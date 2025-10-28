@@ -4,7 +4,6 @@ const amountInput = document.getElementById("amount");
 const messageArea = document.getElementById("messageArea");
 const sendButton = document.getElementById("sendButton");
 const statsContent = document.getElementById("statsContent");
-const refreshStats = document.getElementById("refreshStats");
 
 // Show messages
 function showMessage(type, text) {
@@ -40,8 +39,12 @@ form.addEventListener("submit", async (e) => {
     });
 
     const data = await res.json();
-    if (res.ok) showMessage("success", "✅ SMS sent successfully!");
-    else showMessage("error", data.message || "Failed to send SMS.");
+    if (res.ok) {
+      showMessage("success", "✅ SMS sent successfully!");
+      loadStats();  // Refresh stats here!
+    } else {
+      showMessage("error", data.message || "Failed to send SMS.");
+    }
   } catch {
     showMessage("error", "Network error. Try again later.");
   } finally {
@@ -73,5 +76,4 @@ async function loadStats() {
   }
 }
 
-refreshStats.addEventListener("click", loadStats);
 window.addEventListener("load", loadStats);
