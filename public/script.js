@@ -3,6 +3,7 @@ const phoneNumberInput = document.getElementById('phoneNumber');
 const amountInput = document.getElementById('amount');
 const messageArea = document.getElementById('messageArea');
 const sendButton = document.getElementById('sendButton');
+const statsContent = document.getElementById('statsContent');
 
 function displayMessage(type, message) {
   const colors = {
@@ -46,6 +47,7 @@ async function sendOTP(event) {
 
     if (response.ok) {
       displayMessage('success', `✅ SMS sent successfully! Message: ${result.message || 'Success'}`);
+      fetchStats(); // Refresh stats after sending
     } else {
       displayMessage('error', result.message || 'Failed to send SMS.');
     }
@@ -58,4 +60,40 @@ async function sendOTP(event) {
   }
 }
 
+async function fetchStats() {
+  try {
+    const response = await fetch('/api/stats');
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      statsContent.innerHTML = `<p class="text-red-600">Failed to load stats.</p>`;
+      return;
+    }
+
+    const { totalRequests, endpoints, lastUpdated } = data.data;
+
+    const endpointsHtml = Object.entries(endpoints)
+      .map(([name, count]) => `
+        <div class="flex justify-between border-b py-1">
+          <span>${name}</span>
+          <span class="font-semibold">${count}</span>
+        </div>
+      `).join('');
+
+    const updatedDate = new Date(lastUpdated).toLocaleString();
+
+    statsContent.innerHTML = `
+      <div class="space-y-3">
+        <p><strong>Total Requests:</strong> ${totalRequests}</p>
+        <div class="text-left">${endpointsHtml}</div>
+        <p class="text-xs text-gray-400">Last Updated: ${updatedDate}</p>
+      </div>
+    `;
+  } catch (error) {
+    console.error('Error loading stats:', error);
+    statsContent.innerHTML = `<p class="text-red-600">Error loading stats.</p>`;
+  }
+}
+
 form.addEventListener('submit', sendOTP);
+window.addEventListener('DOMContentLoaded', fetchStats);
