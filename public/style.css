@@ -1,34 +1,37 @@
 html, body {
-  height: 100%;
   margin: 0;
   font-family: 'Inter', sans-serif;
+  scroll-behavior: smooth;
 }
 
 .input-field {
   width: 100%;
-  padding: 0.5rem 1rem;
+  padding: 0.65rem 1rem;
   border: 1px solid #d1d5db;
   border-radius: 0.5rem;
-  transition: border-color 0.2s ease-in-out;
+  background-color: #f9fafb;
+  transition: all 0.2s ease-in-out;
 }
 
 .input-field:focus {
   border-color: #4F46E5;
+  background-color: #fff;
   outline: none;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
 }
 
 .btn-primary {
-  width: 100%;
-  padding: 0.6rem 1rem;
-  border-radius: 0.5rem;
-  background-color: #4F46E5;
+  background: linear-gradient(to right, #4F46E5, #6366F1);
   color: white;
   font-weight: 600;
-  transition: background-color 0.2s ease;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  transition: all 0.25s ease;
 }
 
 .btn-primary:hover {
-  background-color: #4338CA;
+  background: linear-gradient(to right, #4338CA, #4F46E5);
+  transform: translateY(-1px);
 }
 
 .btn-primary:disabled {
@@ -36,3 +39,14 @@ html, body {
   cursor: not-allowed;
 }
 
+.card {
+  background-color: white;
+  border-radius: 1rem;
+  box-shadow: 0 5px 25px rgba(0,0,0,0.08);
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
