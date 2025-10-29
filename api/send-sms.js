@@ -15,9 +15,7 @@ export default async function handler(req, res) {
       {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "X-API-Key": "0cb4423ed3ee1551036aa1b8a0dc8235236652bdde425707bbc6e98e4e9c5c4e"
-        },
+          "Content-Type": "application/json" },
         body: JSON.stringify({ phoneNumber, amount }),
       }
     );
