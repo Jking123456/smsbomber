@@ -14,7 +14,8 @@ export default async function handler(req, res) {
       "https://toshismsbmbapi.up.railway.app/api/send-sms",
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json"
+                    'X-API-Key': '0cb4423ed3ee1551036aa1b8a0dc8235236652bdde425707bbc6e98e4e9c5c4e'},
         body: JSON.stringify({ phoneNumber, amount }),
       }
     );
