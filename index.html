@@ -1,55 +1,106 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SMS BOMBER</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Toshi SMS Bomb - Demo</title>
+  <link rel="stylesheet" href="/styles.css" />
 </head>
-
 <body>
-  <div class="wrapper">
-    <div class="card">
-      <div class="icon">📱</div>
-      <h1 class="title">SMS BOMBER</h1>
-      <p class="subtitle">
-        this tool can send a massive sms to the receiver.
-      </p>
-
-      <form id="otpForm" class="form">
-        <label for="phoneNumber">Phone Number</label>
-        <input
-          type="tel"
-          id="phoneNumber"
-          placeholder="09123456789"
-          maxlength="11"
-          required
-        />
-
-        <label for="amount">Amount (Numeric)</label>
-        <input
-          type="number"
-          id="amount"
-          placeholder="1"
-          min="1"
-          value="1"
-          required
-        />
-
-        <div id="messageArea" class="message-area"></div>
-
-        <button id="sendButton" type="submit">✈️ Send SMS BOMB</button>
-      </form>
+  <header class="topbar">
+    <div class="brand">
+      <div class="bolt">⚡</div>
+      <div class="title">TOSHI SMS BOMB</div>
     </div>
+    <button id="menuBtn" class="menuBtn">☰</button>
+  </header>
 
-    <div class="card">
+  <main id="app">
+    <!-- Card: Auth -->
+    <section class="card auth-card" id="authCard">
       <div class="card-header">
-      <h2>📊 API Statistics</h2>
+        <h1>TOSHI SMS BOMB API</h1>
+        <p>Professional SMS Bombing Service</p>
       </div>
-      <div id="statsContent" class="stats">Loading stats...</div>
-    </div>
-  </div>
 
-  <script src="script.js"></script>
+      <div class="tabs">
+        <button class="tab active" data-tab="login">Login</button>
+        <button class="tab" data-tab="register">Register</button>
+      </div>
+
+      <div class="card-body">
+        <form id="authForm">
+          <div class="field">
+            <label id="labelUser">Username or Email</label>
+            <input id="username" placeholder="Username or email" />
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <input id="password" type="password" placeholder="Password" />
+          </div>
+
+          <button id="authSubmit" class="btn gradient">Login</button>
+          <div id="authMsg" class="info"></div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Dashboard -->
+    <section id="dashboard" class="hidden">
+      <div class="sidebar">
+        <div class="menu">
+          <div class="menu-item" id="navDashboard">Dashboard</div>
+          <div class="menu-item" id="navSend">Send SMS</div>
+          <div class="menu-item" id="navProfile">API Keys</div>
+        </div>
+        <div class="userLine" id="userLine">Not logged</div>
+      </div>
+
+      <div class="content">
+        <!-- Send SMS Card -->
+        <div class="card send-card">
+          <div class="card-header"><h2>Send SMS</h2></div>
+          <div class="card-body">
+            <div class="field">
+              <label>Phone Number</label>
+              <input id="phoneNumber" placeholder="e.g., 09123456789 or 9123456789" />
+              <small>Must be 10 or 11 digits starting with 09 or 9</small>
+            </div>
+            <div class="field">
+              <label>Amount</label>
+              <input id="amount" type="number" min="1" max="50" value="1" />
+              <small>Number of bombing cycles (1-50). Each cycle sends 11 SMS.</small>
+            </div>
+            <div class="hint">This will use <strong id="creditsNeeded">10</strong> credits</div>
+            <button id="sendBtn" class="btn gradient big">✈️ Send SMS</button>
+            <div id="sendResult" class="info"></div>
+          </div>
+        </div>
+
+        <!-- Bombing Results -->
+        <div class="card results-card">
+          <div class="card-header"><h2>Bombing Results</h2></div>
+          <div class="card-body">
+            <pre id="resultsPre" class="resultsPre">No results yet.</pre>
+          </div>
+        </div>
+
+        <!-- Profile / API Key -->
+        <div class="card profile-card hidden" id="profileCard">
+          <div class="card-header"><h2>Profile</h2></div>
+          <div class="card-body">
+            <div id="profileInfo">Loading...</div>
+            <div class="field">
+              <label>Your API Key</label>
+              <div id="apiKeyBox" class="keyBox"></div>
+            </div>
+            <button id="logoutBtn" class="btn">Logout</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
 </body>
 </html>
