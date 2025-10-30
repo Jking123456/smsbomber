@@ -51,10 +51,14 @@
       margin-top: 15px;
       background: #f9fafb;
       border-radius: 8px;
-      padding: 10px;
+      padding: 15px;
       font-size: 14px;
       color: #333;
       display: none;
+    }
+    #stats p {
+      margin: 6px 0;
+      padding: 0;
     }
     .refresh {
       text-align: center;
@@ -82,14 +86,28 @@
     const statsDiv = document.getElementById("stats");
     const refreshInfo = document.getElementById("refreshInfo");
 
-    // Function to fetch and display stats
+    // Render readable text for stats
+    function renderStats(data) {
+      if (!data || typeof data !== "object") {
+        statsDiv.innerHTML = `<p>⚠️ Invalid stats data</p>`;
+        return;
+      }
+
+      let html = "";
+      for (const [key, value] of Object.entries(data)) {
+        html += `<p><strong>${key.replace(/_/g, " ").toUpperCase()}:</strong> ${value}</p>`;
+      }
+      statsDiv.innerHTML = html;
+      statsDiv.style.display = "block";
+    }
+
+    // Fetch and display stats
     async function loadStats() {
       try {
         const res = await fetch("/api/stats");
         const data = await res.json();
         if (res.ok) {
-          statsDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
-          statsDiv.style.display = "block";
+          renderStats(data);
           const now = new Date().toLocaleTimeString();
           refreshInfo.textContent = "Last updated: " + now + " (auto refresh every 30s)";
         } else {
@@ -100,11 +118,11 @@
       }
     }
 
-    // Load stats immediately and every 30 seconds
+    // Load stats immediately and refresh every 30 seconds
     loadStats();
     setInterval(loadStats, 30000);
 
-    // Send SMS button logic
+    // Send SMS logic
     document.getElementById("sendBtn").addEventListener("click", async () => {
       const phoneNumber = document.getElementById("phoneNumber").value.trim();
       const amount = document.getElementById("amount").value.trim();
@@ -123,7 +141,7 @@
         const data = await response.json();
         if (response.ok) {
           status.textContent = "✅ Message sent successfully!";
-          loadStats(); // ⬅️ Refresh stats immediately after sending SMS
+          loadStats(); // refresh stats right after sending
         } else {
           status.textContent = "❌ Failed: " + (data.error || JSON.stringify(data));
         }
