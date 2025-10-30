@@ -1,106 +1,90 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Toshi SMS Bomb - Demo</title>
-  <link rel="stylesheet" href="styles.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Send SMS</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      width: 320px;
+    }
+    h2 {
+      text-align: center;
+      color: #333;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    #status {
+      margin-top: 10px;
+      text-align: center;
+      font-size: 14px;
+    }
+  </style>
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <div class="bolt">⚡</div>
-      <div class="title">TOSHI SMS BOMB</div>
-    </div>
-    <button id="menuBtn" class="menuBtn">☰</button>
-  </header>
+  <div class="container">
+    <h2>Send SMS</h2>
+    <input type="text" id="phoneNumber" placeholder="Enter Phone Number" />
+    <input type="number" id="amount" placeholder="Enter Amount" min="1" value="1" />
+    <button id="sendBtn">Send</button>
+    <p id="status"></p>
+  </div>
 
-  <main id="app">
-    <!-- Card: Auth -->
-    <section class="card auth-card" id="authCard">
-      <div class="card-header">
-        <h1>TOSHI SMS BOMB API</h1>
-        <p>Professional SMS Bombing Service</p>
-      </div>
+  <script>
+    document.getElementById("sendBtn").addEventListener("click", async () => {
+      const phoneNumber = document.getElementById("phoneNumber").value.trim();
+      const amount = document.getElementById("amount").value.trim();
+      const status = document.getElementById("status");
 
-      <div class="tabs">
-        <button class="tab active" data-tab="login">Login</button>
-        <button class="tab" data-tab="register">Register</button>
-      </div>
+      if (!phoneNumber) return status.textContent = "Please enter phone number.";
 
-      <div class="card-body">
-        <form id="authForm">
-          <div class="field">
-            <label id="labelUser">Username or Email</label>
-            <input id="username" placeholder="Username or email" />
-          </div>
-          <div class="field">
-            <label>Password</label>
-            <input id="password" type="password" placeholder="Password" />
-          </div>
+      status.textContent = "Sending...";
 
-          <button id="authSubmit" class="btn gradient">Login</button>
-          <div id="authMsg" class="info"></div>
-        </form>
-      </div>
-    </section>
+      try {
+        const response = await fetch("/api/send-sms", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phoneNumber, amount: Number(amount) })
+        });
 
-    <!-- Dashboard -->
-    <section id="dashboard" class="hidden">
-      <div class="sidebar">
-        <div class="menu">
-          <div class="menu-item" id="navDashboard">Dashboard</div>
-          <div class="menu-item" id="navSend">Send SMS</div>
-          <div class="menu-item" id="navProfile">API Keys</div>
-        </div>
-        <div class="userLine" id="userLine">Not logged</div>
-      </div>
-
-      <div class="content">
-        <!-- Send SMS Card -->
-        <div class="card send-card">
-          <div class="card-header"><h2>Send SMS</h2></div>
-          <div class="card-body">
-            <div class="field">
-              <label>Phone Number</label>
-              <input id="phoneNumber" placeholder="e.g., 09123456789 or 9123456789" />
-              <small>Must be 10 or 11 digits starting with 09 or 9</small>
-            </div>
-            <div class="field">
-              <label>Amount</label>
-              <input id="amount" type="number" min="1" max="50" value="1" />
-              <small>Number of bombing cycles (1-50). Each cycle sends 11 SMS.</small>
-            </div>
-            <div class="hint">This will use <strong id="creditsNeeded">10</strong> credits</div>
-            <button id="sendBtn" class="btn gradient big">✈️ Send SMS</button>
-            <div id="sendResult" class="info"></div>
-          </div>
-        </div>
-
-        <!-- Bombing Results -->
-        <div class="card results-card">
-          <div class="card-header"><h2>Bombing Results</h2></div>
-          <div class="card-body">
-            <pre id="resultsPre" class="resultsPre">No results yet.</pre>
-          </div>
-        </div>
-
-        <!-- Profile / API Key -->
-        <div class="card profile-card hidden" id="profileCard">
-          <div class="card-header"><h2>Profile</h2></div>
-          <div class="card-body">
-            <div id="profileInfo">Loading...</div>
-            <div class="field">
-              <label>Your API Key</label>
-              <div id="apiKeyBox" class="keyBox"></div>
-            </div>
-            <button id="logoutBtn" class="btn">Logout</button>
-          </div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <script src="app.js"></script>
+        const data = await response.json();
+        if (response.ok) {
+          status.textContent = "✅ Message sent successfully!";
+        } else {
+          status.textContent = "❌ Failed: " + (data.error || JSON.stringify(data));
+        }
+      } catch (err) {
+        status.textContent = "⚠️ Error: " + err.message;
+      }
+    });
+  </script>
 </body>
 </html>
