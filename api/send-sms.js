@@ -11,6 +11,7 @@ function makeHybridIdHash(userAgent, deviceModel, cookieId) {
 
 // Helper: Parse cookies
 function parseCookies(cookieHeader = "") {
+  if (!cookieHeader) return {};
   return Object.fromEntries(
     cookieHeader.split(";").map(c => {
       const [k, ...v] = c.trim().split("=");
@@ -36,6 +37,7 @@ export default async function handler(req, res) {
 
   if (!cookieId) {
     cookieId = crypto.randomUUID();
+    // set cookie; Max-Age 1 year, HttpOnly, SameSite Lax
     res.setHeader(
       "Set-Cookie",
       `device_id=${cookieId}; Path=/; Max-Age=31536000; HttpOnly; SameSite=Lax`
@@ -116,15 +118,67 @@ export default async function handler(req, res) {
       body: JSON.stringify({ phoneNumber, amount })
     });
 
-    const data = await smsResponse.json();
+    const downstream = await smsResponse.json().catch(() => ({}));
 
-    // Set cooldown after success
+    // If SMS succeeded (2xx), set cooldown and return the requested success shape.
     if (smsResponse.ok) {
       cooldowns.set(deviceId, Date.now());
+
+      // Extract fields from downstream response where possible, otherwise use sensible defaults.
+      // The downstream API may provide different field names; we attempt several common ones.
+      const successCount = Number(
+        downstream.successCount ??
+        downstream.successes ??
+        downstream.sent ??
+        downstream.delivered ??
+        (typeof downstream.total === "number" ? downstream.total : null) ??
+        0
+      );
+
+      const failCount = Number(
+        downstream.failCount ??
+        downstream.failures ??
+        downstream.failed ??
+        (typeof downstream.errors === "number" ? downstream.errors : null) ??
+        0
+      );
+
+      // If both counts are zero (downstream didn't provide), assume one attempt equals success if 2xx.
+      const computedSuccessCount = successCount || (successCount === 0 && failCount === 0 ? 1 : successCount);
+      const computedFailCount = failCount || (successCount === 0 && failCount === 0 ? 0 : failCount);
+
+      const totalAttempts = computedSuccessCount + computedFailCount;
+
+      const creditsUsed = Number(
+        downstream.creditsUsed ??
+        downstream.credits ??
+        computedSuccessCount
+      );
+
+      const remainingCredits = typeof downstream.remainingCredits !== "undefined"
+        ? Number(downstream.remainingCredits)
+        : (typeof downstream.balance !== "undefined" ? Number(downstream.balance) : null);
+
+      const responsePayload = {
+        success: true,
+        message: "SMS bombing completed",
+        data: {
+          phoneNumber: String(phoneNumber),
+          requestedAmount: Number(amount),
+          successCount: computedSuccessCount,
+          failCount: computedFailCount,
+          totalAttempts: totalAttempts,
+          creditsUsed: creditsUsed,
+          remainingCredits: remainingCredits,
+          timestamp: new Date().toISOString()
+        }
+      };
+
+      return res.status(200).json(responsePayload);
+    } else {
+      // Downstream returned error - pass it through (status + body) for debugging/handling
+      return res.status(smsResponse.status).json(downstream);
     }
-
-    return res.status(smsResponse.status).json(data);
-
   } catch (error) {
     return res.status(500).json({ error: error.message || "Internal Server Error" });
   }
