@@ -1,24 +1,13 @@
 export default async function handler(req, res) {
   try {
-    // Step 1: Get a fresh API key
-    const keyResponse = await fetch("https://sms-api-key.vercel.app/api/generate?count=1");
-    const keyData = await keyResponse.json();
-    const apiKey = keyData[0]; // API returns an array with one key
-
-    if (!apiKey) {
-      throw new Error("Failed to retrieve API key");
-    }
-
-    // Step 2: Fetch stats using the dynamic key
     const response = await fetch("https://toshismsbmbapi.up.railway.app/api/stats", {
       headers: {
-        "X-API-Key": apiKey
+        "X-API-Key": "65b4edb0643bedb83606abf34c6c044bc825bcc2492960b4a16873586d5286aa"
       }
     });
 
     const data = await response.json();
     return res.status(response.status).json(data);
-
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
