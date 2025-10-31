@@ -31,7 +31,11 @@
       from {opacity: 0; transform: translateY(10px);}
       to {opacity: 1; transform: translateY(0);}
     }
-    h2 { color: #222; margin-bottom: 15px; font-weight: 600; }
+    h2 {
+      color: #222;
+      margin-bottom: 15px;
+      font-weight: 600;
+    }
     input {
       width: 100%;
       padding: 12px;
@@ -67,6 +71,7 @@
       transform: scale(1.02);
       box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     }
+
     .spinner {
       border: 3px solid #f3f3f3;
       border-top: 3px solid #fff;
@@ -80,19 +85,24 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+
     #status {
       margin-top: 12px;
       font-size: 13px;
       font-weight: 500;
       text-align: left;
-      white-space: pre-line;
       background: #f8f9fa;
-      border-radius: 10px;
       padding: 10px;
-      border: 1px solid #e1e1e1;
-      display: none;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
     }
-    h3 { margin-top: 25px; color: #333; font-size: 16px; }
+    h3 {
+      margin-top: 25px;
+      color: #333;
+      font-size: 16px;
+    }
     #stats {
       margin-top: 10px;
       background: #f8f9fa;
@@ -104,9 +114,27 @@
       font-size: 12px;
       line-height: 1.4;
     }
-    .stat-line { margin: 4px 0; }
-    .refresh { margin-top: 6px; font-size: 11px; color: #777; text-align: center; }
-    .note { font-size: 12px; color: #555; margin-top: 6px; }
+    .stat-line {
+      margin: 4px 0;
+    }
+    .refresh {
+      margin-top: 6px;
+      font-size: 11px;
+      color: #777;
+      text-align: center;
+    }
+
+    .note {
+      font-size: 12px;
+      color: #555;
+      margin-top: 6px;
+    }
+
+    @media (max-width: 480px) {
+      .container { padding: 25px; }
+      h2 { font-size: 20px; }
+      button { font-size: 15px; }
+    }
   </style>
 </head>
 <body>
@@ -114,10 +142,10 @@
     <h2>📩 SMS Bomber</h2>
     <input type="text" id="phoneNumber" placeholder="Enter Phone Number" />
     <input type="number" id="amount" placeholder="Amount is locked to 10" min="10" max="10" value="10" readonly />
-    <div class="note">Amount is locked to <strong>10</strong>. Changing this value will prevent sending.</div>
+    <div class="note">Amount is locked to <strong>10</strong>. Changing this value will prevent the request from being sent.</div>
 
     <button id="sendBtn">Send SMS 🚀</button>
-    <div id="status"></div>
+    <pre id="status"></pre>
 
     <h3>📊 Live API Stats</h3>
     <div id="stats"></div>
@@ -130,16 +158,28 @@
   const refreshInfo = document.getElementById("refreshInfo");
   const sendBtn = document.getElementById("sendBtn");
 
+  function renderStats(data, indent = 0) {
+    const indentSpace = "&nbsp;".repeat(indent * 4);
+    let html = "";
+    for (const [key, value] of Object.entries(data)) {
+      if (typeof value === "object" && value !== null) {
+        html += `<div class="stat-line">${indentSpace}<b>${key}:</b></div>`;
+        html += renderStats(value, indent + 1);
+      } else {
+        html += `<div class="stat-line">${indentSpace}<b>${key}:</b> ${value}</div>`;
+      }
+    }
+    return html;
+  }
+
   async function loadStats() {
     try {
       const res = await fetch("/api/stats");
       const data = await res.json();
       if (res.ok) {
-        statsDiv.innerHTML = Object.entries(data)
-          .map(([k, v]) => `<div><b>${k}</b>: ${v}</div>`).join("");
+        statsDiv.innerHTML = renderStats(data);
         statsDiv.style.display = "block";
-        refreshInfo.textContent =
-          "Last updated: " + new Date().toLocaleTimeString() + " (auto refresh every 30s)";
+        refreshInfo.textContent = "Last updated: " + new Date().toLocaleTimeString() + " (auto refresh every 30s)";
       } else {
         statsDiv.innerHTML = "<p style='color:red;'>❌ Failed to load stats</p>";
       }
@@ -153,13 +193,15 @@
     const amount = Number(document.getElementById("amount").value);
 
     if (!phoneNumber) return (statusEl.textContent = "⚠️ Please enter phone number.");
-    if (isNaN(amount) || amount !== 10)
-      return (statusEl.textContent = "⚠️ Amount is locked to 10. Please do not change it.");
+
+    if (isNaN(amount) || amount !== 10) {
+      statusEl.textContent = "⚠️ Amount is locked to 10. Please do not change it.";
+      return;
+    }
 
     sendBtn.disabled = true;
     const originalText = sendBtn.innerHTML;
     sendBtn.innerHTML = `<div class="spinner"></div> Sending...`;
-    statusEl.style.display = "none";
     statusEl.textContent = "";
 
     try {
@@ -170,25 +212,12 @@
       });
       const data = await res.json();
 
-      if (res.ok && data.success) {
-        statusEl.style.display = "block";
-        statusEl.textContent =
-          `✅ ${data.message}\n` +
-          `Phone: ${data.data.phoneNumber}\n` +
-          `Requested: ${data.data.requestedAmount}\n` +
-          `Success: ${data.data.successCount}\n` +
-          `Failed: ${data.data.failCount}\n` +
-          `Total Attempts: ${data.data.totalAttempts}\n` +
-          `Credits Used: ${data.data.creditsUsed}\n` +
-          `Remaining: ${data.data.remainingCredits}\n` +
-          `Timestamp: ${data.data.timestamp}`;
-        loadStats();
-      } else {
-        statusEl.style.display = "block";
-        statusEl.textContent = "❌ Failed: " + (data.error || JSON.stringify(data));
-      }
+      // Display the actual JSON response from the API
+      statusEl.textContent = JSON.stringify(data, null, 2);
+
+      if (res.ok) loadStats();
+      else statusEl.style.color = "red";
     } catch (err) {
-      statusEl.style.display = "block";
       statusEl.textContent = "⚠️ Error: " + err.message;
     } finally {
       sendBtn.disabled = false;
