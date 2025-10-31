@@ -16,7 +16,7 @@ export default async function handler(req, res) {
     const apiKey = keyData[0]; // API returns an array with one key
 
     if (!apiKey) {
-      throw new Error("Failed to retrieve API key");
+      throw new Error("15 minutes Cooldown");
     }
 
     // Step 2: Send SMS using the fetched key
