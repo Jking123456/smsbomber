@@ -141,8 +141,8 @@
   <div class="container">
     <h2>📩 SMS Bomber</h2>
     <input type="text" id="phoneNumber" placeholder="Enter Phone Number" />
-    <input type="number" id="amount" placeholder="Amount is locked to 11" min="11" max="11" value="11" readonly />
-    <div class="note">Amount is locked to <strong>11</strong>. Changing this value will prevent the request from being sent.</div>
+    <input type="number" id="amount" placeholder="Amount is locked to 10" min="11" max="10" value="10" readonly />
+    <div class="note">Amount is locked to <strong>10</strong>. Changing this value will prevent the request from being sent.</div>
 
     <button id="sendBtn">Send SMS 🚀</button>
     <pre id="status"></pre>
@@ -194,7 +194,7 @@
 
     if (!phoneNumber) return (statusEl.textContent = "⚠️ Please enter phone number.");
 
-    if (isNaN(amount) || amount !== 11) {
+    if (isNaN(amount) || amount !== 10) {
       statusEl.textContent = "⚠️ Amount is locked to 10. Please do not change it.";
       return;
     }
