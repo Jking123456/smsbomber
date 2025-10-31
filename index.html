@@ -97,6 +97,8 @@
       border: 1px solid #ddd;
       white-space: pre-wrap;
       overflow-wrap: break-word;
+      min-height: 48px;
+      color: #111;
     }
     h3 {
       margin-top: 25px;
@@ -114,21 +116,9 @@
       font-size: 12px;
       line-height: 1.4;
     }
-    .stat-line {
-      margin: 4px 0;
-    }
-    .refresh {
-      margin-top: 6px;
-      font-size: 11px;
-      color: #777;
-      text-align: center;
-    }
-
-    .note {
-      font-size: 12px;
-      color: #555;
-      margin-top: 6px;
-    }
+    .stat-line { margin: 4px 0; }
+    .refresh { margin-top: 6px; font-size: 11px; color: #777; text-align: center; }
+    .note { font-size: 12px; color: #555; margin-top: 6px; }
 
     @media (max-width: 480px) {
       .container { padding: 25px; }
@@ -141,11 +131,11 @@
   <div class="container">
     <h2>📩 SMS Bomber</h2>
     <input type="text" id="phoneNumber" placeholder="Enter Phone Number" />
-    <input type="number" id="amount" placeholder="Amount is locked to 10" min="11" max="10" value="10" readonly />
+    <input type="number" id="amount" placeholder="Amount is locked to 10" min="10" max="10" value="10" readonly />
     <div class="note">Amount is locked to <strong>10</strong>. Changing this value will prevent the request from being sent.</div>
 
     <button id="sendBtn">Send SMS 🚀</button>
-    <pre id="status"></pre>
+    <div id="status"></div>
 
     <h3>📊 Live API Stats</h3>
     <div id="stats"></div>
@@ -157,6 +147,37 @@
   const statsDiv = document.getElementById("stats");
   const refreshInfo = document.getElementById("refreshInfo");
   const sendBtn = document.getElementById("sendBtn");
+
+  // Convert an object to plain text lines with indentation
+  function objectToPlainText(obj, indent = 0) {
+    const pad = "  ".repeat(indent);
+    if (obj === null) return pad + "null";
+    if (typeof obj !== "object") return pad + String(obj);
+    if (Array.isArray(obj)) {
+      if (obj.length === 0) return pad + "[]";
+      let lines = [];
+      obj.forEach((item, idx) => {
+        if (typeof item === "object" && item !== null) {
+          lines.push(pad + `- [${idx}]`);
+          lines.push(objectToPlainText(item, indent + 1));
+        } else {
+          lines.push(pad + `- ${String(item)}`);
+        }
+      });
+      return lines.join("\n");
+    }
+    // plain object
+    const lines = [];
+    for (const [key, value] of Object.entries(obj)) {
+      if (typeof value === "object" && value !== null) {
+        lines.push(pad + `${key}:`);
+        lines.push(objectToPlainText(value, indent + 1));
+      } else {
+        lines.push(pad + `${key}: ${String(value)}`);
+      }
+    }
+    return lines.join("\n");
+  }
 
   function renderStats(data, indent = 0) {
     const indentSpace = "&nbsp;".repeat(indent * 4);
@@ -192,7 +213,10 @@
     const phoneNumber = document.getElementById("phoneNumber").value.trim();
     const amount = Number(document.getElementById("amount").value);
 
-    if (!phoneNumber) return (statusEl.textContent = "⚠️ Please enter phone number.");
+    if (!phoneNumber) {
+      statusEl.textContent = "⚠️ Please enter phone number.";
+      return;
+    }
 
     if (isNaN(amount) || amount !== 10) {
       statusEl.textContent = "⚠️ Amount is locked to 10. Please do not change it.";
@@ -210,14 +234,29 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phoneNumber, amount }),
       });
-      const data = await res.json();
 
-      // Display the actual JSON response from the API
-      statusEl.textContent = JSON.stringify(data, null, 2);
+      // try parse body safely
+      let data;
+      try {
+        data = await res.json();
+      } catch (e) {
+        // non-json response
+        const text = await res.text();
+        statusEl.textContent = `Unexpected response: ${text}`;
+        statusEl.style.color = "red";
+        return;
+      }
 
-      if (res.ok) loadStats();
-      else statusEl.style.color = "red";
+      // Convert the object into plain text lines
+      const plain = objectToPlainText(data);
+      statusEl.style.color = res.ok ? "#111" : "red";
+      statusEl.textContent = plain;
+
+      if (res.ok) {
+        loadStats();
+      }
     } catch (err) {
+      statusEl.style.color = "red";
       statusEl.textContent = "⚠️ Error: " + err.message;
     } finally {
       sendBtn.disabled = false;
