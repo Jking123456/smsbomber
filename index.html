@@ -107,14 +107,10 @@
       border: 3px solid rgba(255, 255, 255, 0.2);
       border-top-color: #fff;
       border-radius: 50%;
-      animation: spin 0.9s linear infinite, glow 1.8s ease-in-out infinite alternate;
+      animation: spin 0.9s linear infinite;
     }
 
     @keyframes spin { to { transform: rotate(360deg); } }
-    @keyframes glow {
-      from { box-shadow: 0 0 6px rgba(255, 255, 255, 0.3); }
-      to { box-shadow: 0 0 15px rgba(255, 255, 255, 0.9); }
-    }
 
     .sending-text {
       font-weight: 600;
@@ -138,11 +134,11 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      flex-direction: column;
       z-index: 999;
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.3s ease;
+      flex-direction: column;
     }
 
     .loading-overlay.active {
@@ -157,36 +153,17 @@
       flex-direction: column;
       align-items: center;
       gap: 10px;
-      font-family: "Poppins", sans-serif;
       color: #fff;
       font-size: 16px;
-      animation: fadeInUp 0.3s ease;
-      background: transparent;
-      box-shadow: 0 0 20px rgba(255,0,0,0.7),
-                  0 0 30px rgba(0,255,0,0.7),
-                  0 0 40px rgba(0,0,255,0.7);
-      animation: rgbGlow 2s infinite alternate;
     }
 
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes rgbGlow {
-      0% { box-shadow: 0 0 20px rgba(255,0,0,0.7), 0 0 30px rgba(0,255,0,0.7), 0 0 40px rgba(0,0,255,0.7); }
-      50% { box-shadow: 0 0 30px rgba(255,0,255,0.8), 0 0 40px rgba(0,255,255,0.8), 0 0 50px rgba(255,255,0,0.8); }
-      100% { box-shadow: 0 0 20px rgba(0,255,255,0.7), 0 0 30px rgba(255,0,255,0.7), 0 0 40px rgba(255,255,0,0.7); }
-    }
-
-    /* Video inside loading overlay */
     #videoPlayer {
-      width: 280px;
-      height: 480px;
+      width: 240px;
+      height: 400px;
       border-radius: 12px;
-      margin-top: 20px;
-      background: #000;
+      margin-top: 10px;
       object-fit: cover;
+      background: #000;
     }
   </style>
 </head>
@@ -208,163 +185,145 @@
       <div class="spinner"></div>
       <div class="sending-text" id="progressText">Preparing to send...</div>
       <div style="font-size:12px; color:#fff;">Made with ❤️ by Henry Ross</div>
-      <!-- Video Player -->
-      <video id="videoPlayer" autoplay muted playsinline></video>
     </div>
+    <video id="videoPlayer" playsinline autoplay loop></video>
   </div>
+
   <script>
-  const statusEl = document.getElementById("status");
-  const sendBtn = document.getElementById("sendBtn");
-  const overlay = document.getElementById("loadingOverlay");
-  const progressEl = document.getElementById("progressText");
-  const videoPlayer = document.getElementById("videoPlayer");
+    const statusEl = document.getElementById("status");
+    const sendBtn = document.getElementById("sendBtn");
+    const overlay = document.getElementById("loadingOverlay");
+    const progressEl = document.getElementById("progressText");
+    const videoPlayer = document.getElementById("videoPlayer");
 
-  let userInteracted = false;
+    let userInteracted = false;
 
-  // Function to safely set a working video source
-  async function loadShotiVideo() {
-    try {
-      const res = await fetch("https://haji-mix-api.gleeze.com/api/shoti?stream=false");
-      const data = await res.json();
+    async function loadShotiVideo() {
+      try {
+        const res = await fetch("/api/shoti-proxy");
+        if (!res.ok) throw new Error("Proxy failed");
 
-      if (data && data.link) {
-        // Ensure it's a direct mp4 stream link
-        let videoURL = data.link;
-        if (!videoURL.endsWith(".mp4")) {
-          // Try forcing mp4 version
-          videoURL = videoURL.replace("/video/", "/api/video/") + ".mp4";
-        }
+        const blob = await res.blob();
+        const videoURL = URL.createObjectURL(blob);
 
-        // Assign and play
         videoPlayer.src = videoURL;
         videoPlayer.load();
         videoPlayer.muted = !userInteracted;
-        const playPromise = videoPlayer.play();
-        if (playPromise) playPromise.catch(() => {});
+        videoPlayer.play().catch(() => {});
         videoPlayer.onended = loadShotiVideo;
-      } else {
-        console.warn("Invalid video data:", data);
+      } catch (err) {
+        console.error("Video load error:", err);
+        setTimeout(loadShotiVideo, 2000);
       }
-    } catch (err) {
-      console.error("Video load error:", err);
-      setTimeout(loadShotiVideo, 2000);
     }
-  }
 
-  // Monitor overlay to trigger video
-  const observer = new MutationObserver(() => {
-    if (overlay.classList.contains("active")) {
-      loadShotiVideo();
-    } else {
-      videoPlayer.pause();
+    const observer = new MutationObserver(() => {
+      if (overlay.classList.contains("active")) {
+        loadShotiVideo();
+      } else {
+        videoPlayer.pause();
+      }
+    });
+    observer.observe(overlay, { attributes: true, attributeFilter: ["class"] });
+
+    let cooldownEl = document.createElement("div");
+    cooldownEl.style.marginTop = "10px";
+    cooldownEl.style.color = "#ff4747";
+    cooldownEl.style.fontWeight = "600";
+    cooldownEl.style.fontSize = "14px";
+    cooldownEl.style.display = "none";
+    statusEl.parentElement.appendChild(cooldownEl);
+
+    let cooldownTimer = null;
+    function startCooldown(seconds) {
+      clearInterval(cooldownTimer);
+      sendBtn.disabled = true;
+      cooldownEl.style.display = "block";
+      function updateDisplay() {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        cooldownEl.textContent = `⏳ Cooldown: ${m.toString().padStart(2, "0")}:${s
+          .toString()
+          .padStart(2, "0")}`;
+        if (seconds <= 0) {
+          clearInterval(cooldownTimer);
+          cooldownEl.style.display = "none";
+          sendBtn.disabled = false;
+          return;
+        }
+        seconds--;
+      }
+      updateDisplay();
+      cooldownTimer = setInterval(updateDisplay, 1000);
     }
-  });
-  observer.observe(overlay, { attributes: true, attributeFilter: ["class"] });
 
-  // Cooldown display
-  let cooldownEl = document.createElement("div");
-  cooldownEl.style.marginTop = "10px";
-  cooldownEl.style.color = "#ff4747";
-  cooldownEl.style.fontWeight = "600";
-  cooldownEl.style.fontSize = "14px";
-  cooldownEl.style.display = "none";
-  statusEl.parentElement.appendChild(cooldownEl);
+    function objectToPlainText(obj, indent = 0) {
+      const pad = "  ".repeat(indent);
+      if (obj === null) return pad + "null";
+      if (typeof obj !== "object") return pad + String(obj);
+      if (Array.isArray(obj)) return obj.map((v) => pad + `- ${v}`).join("\n");
+      return Object.entries(obj)
+        .map(([k, v]) =>
+          typeof v === "object"
+            ? pad + `${k}:\n` + objectToPlainText(v, indent + 1)
+            : pad + `${k}: ${v}`
+        )
+        .join("\n");
+    }
 
-  let cooldownTimer = null;
-  function startCooldown(seconds) {
-    clearInterval(cooldownTimer);
-    sendBtn.disabled = true;
-    cooldownEl.style.display = "block";
-    function updateDisplay() {
-      const m = Math.floor(seconds / 60);
-      const s = seconds % 60;
-      cooldownEl.textContent = `⏳ Cooldown: ${m.toString().padStart(2, "0")}:${s
-        .toString()
-        .padStart(2, "0")}`;
-      if (seconds <= 0) {
-        clearInterval(cooldownTimer);
-        cooldownEl.style.display = "none";
-        sendBtn.disabled = false;
+    sendBtn.addEventListener("click", async () => {
+      const phoneNumber = document.getElementById("phoneNumber").value.trim();
+      const amount = Number(document.getElementById("amount").value);
+
+      if (!phoneNumber) {
+        statusEl.textContent = "⚠️ Please enter phone number.";
         return;
       }
-      seconds--;
-    }
-    updateDisplay();
-    cooldownTimer = setInterval(updateDisplay, 1000);
-  }
 
-  function objectToPlainText(obj, indent = 0) {
-    const pad = "  ".repeat(indent);
-    if (obj === null) return pad + "null";
-    if (typeof obj !== "object") return pad + String(obj);
-    if (Array.isArray(obj)) return obj.map((v) => pad + `- ${v}`).join("\n");
-    return Object.entries(obj)
-      .map(([k, v]) =>
-        typeof v === "object"
-          ? pad + `${k}:\n` + objectToPlainText(v, indent + 1)
-          : pad + `${k}: ${v}`
-      )
-      .join("\n");
-  }
+      userInteracted = true;
+      overlay.classList.add("active");
+      sendBtn.disabled = true;
+      statusEl.textContent = "";
+      progressEl.textContent = "Starting to send messages...";
 
-  // Main send button
-  sendBtn.addEventListener("click", async () => {
-    const phoneNumber = document.getElementById("phoneNumber").value.trim();
-    const amount = Number(document.getElementById("amount").value);
+      let fakeCount = 0;
+      const fakeProgress = setInterval(() => {
+        if (fakeCount < amount) {
+          fakeCount++;
+          progressEl.textContent = `Sending ${fakeCount} of ${amount}...`;
+        }
+      }, 300);
 
-    if (!phoneNumber) {
-      statusEl.textContent = "⚠️ Please enter phone number.";
-      return;
-    }
+      try {
+        const res = await fetch("/api/send-sms", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phoneNumber, amount }),
+        });
+        const data = await res.json();
+        clearInterval(fakeProgress);
 
-    userInteracted = true;
-    videoPlayer.muted = false;
-    videoPlayer.play().catch(() => {});
+        if (res.ok) {
+          progressEl.textContent = "✅ All messages sent successfully!";
+        } else if (res.status === 429 && data.remainingSeconds) {
+          progressEl.textContent = "⚠️ You're on cooldown.";
+          startCooldown(data.remainingSeconds);
+        } else {
+          progressEl.textContent = `❌ Error: ${data.error || "Unknown error"}`;
+        }
 
-    overlay.classList.add("active");
-    sendBtn.disabled = true;
-    statusEl.textContent = "";
-    progressEl.textContent = "Starting to send messages...";
-
-    let fakeCount = 0;
-    const fakeProgress = setInterval(() => {
-      if (fakeCount < amount) {
-        fakeCount++;
-        progressEl.textContent = `Sending ${fakeCount} of ${amount}...`;
+        statusEl.textContent = objectToPlainText(data);
+      } catch (err) {
+        clearInterval(fakeProgress);
+        progressEl.textContent = "❌ Failed to send messages.";
+        statusEl.textContent = "Error: " + err.message;
+      } finally {
+        setTimeout(() => overlay.classList.remove("active"), 1000);
+        if (cooldownEl.style.display === "none") {
+          sendBtn.disabled = false;
+        }
       }
-    }, 300);
-
-    try {
-      const res = await fetch("/api/send-sms", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phoneNumber, amount }),
-      });
-      const data = await res.json();
-      clearInterval(fakeProgress);
-
-      if (res.ok) {
-        progressEl.textContent = "✅ All messages sent successfully!";
-      } else if (res.status === 429 && data.remainingSeconds) {
-        progressEl.textContent = "⚠️ You're on cooldown.";
-        startCooldown(data.remainingSeconds);
-      } else {
-        progressEl.textContent = `❌ Error: ${data.error || "Unknown error"}`;
-      }
-
-      statusEl.textContent = objectToPlainText(data);
-    } catch (err) {
-      clearInterval(fakeProgress);
-      progressEl.textContent = "❌ Failed to send messages.";
-      statusEl.textContent = "Error: " + err.message;
-    } finally {
-      setTimeout(() => overlay.classList.remove("active"), 1000);
-      if (cooldownEl.style.display === "none") {
-        sendBtn.disabled = false;
-      }
-    }
-  });
+    });
   </script>
-  
 </body>
 </html>
