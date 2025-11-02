@@ -219,32 +219,41 @@
   const progressEl = document.getElementById("progressText");
   const videoPlayer = document.getElementById("videoPlayer");
 
-  let userInteracted = false; // track if user clicked
+  let userInteracted = false; // track if user clicked once
 
-  // Fetch random Shoti video
+  // Load random video from Shoti API
   async function loadShotiVideo() {
     try {
       const res = await fetch("https://haji-mix-api.gleeze.com/api/shoti?stream=false");
       const data = await res.json();
       if (data.link) {
         videoPlayer.src = data.link;
-        videoPlayer.muted = !userInteracted; // unmute only after click
-        await videoPlayer.play().catch(() => {});
+        videoPlayer.muted = !userInteracted;
+        // Start playback safely
+        const playPromise = videoPlayer.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {}); // prevent autoplay rejection
+        }
+        // Fetch next when current ends
         videoPlayer.onended = loadShotiVideo;
       }
     } catch (err) {
       console.error("Failed to load Shoti video:", err);
-      setTimeout(loadShotiVideo, 3000);
+      setTimeout(loadShotiVideo, 3000); // retry
     }
   }
 
-  // Observe when overlay is active → start video
+  // Watch overlay visibility → load videos when active
   const observer = new MutationObserver(() => {
-    if (overlay.classList.contains("active")) loadShotiVideo();
+    if (overlay.classList.contains("active")) {
+      loadShotiVideo();
+    } else {
+      videoPlayer.pause();
+    }
   });
   observer.observe(overlay, { attributes: true, attributeFilter: ["class"] });
 
-  // Cooldown system
+  // --- Cooldown system ---
   let cooldownEl = document.createElement("div");
   cooldownEl.style.marginTop = "10px";
   cooldownEl.style.color = "#ff4747";
@@ -278,6 +287,7 @@
     cooldownTimer = setInterval(updateDisplay, 1000);
   }
 
+  // Format JSON response nicely
   function objectToPlainText(obj, indent = 0) {
     const pad = "  ".repeat(indent);
     if (obj === null) return pad + "null";
@@ -292,11 +302,8 @@
       .join("\n");
   }
 
-  document.getElementById("sendBtn").addEventListener("click", async () => {
-    userInteracted = true; // now allow sound
-    videoPlayer.muted = false;
-    await videoPlayer.play().catch(() => {});
-
+  // --- Main button click handler ---
+  sendBtn.addEventListener("click", async () => {
     const phoneNumber = document.getElementById("phoneNumber").value.trim();
     const amount = Number(document.getElementById("amount").value);
 
@@ -305,11 +312,18 @@
       return;
     }
 
+    // Mark user as interacted → allow sound
+    userInteracted = true;
+    videoPlayer.muted = false;
+    videoPlayer.play().catch(() => {});
+
+    // Show loading overlay immediately
     overlay.classList.add("active");
     sendBtn.disabled = true;
     statusEl.textContent = "";
     progressEl.textContent = "Starting to send messages...";
 
+    // Simulate sending progress
     let fakeCount = 0;
     const fakeProgress = setInterval(() => {
       if (fakeCount < amount) {
@@ -319,6 +333,7 @@
     }, 300);
 
     try {
+      // Actual backend call
       const res = await fetch("/api/send-sms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -343,6 +358,7 @@
       progressEl.textContent = "❌ Failed to send messages.";
       statusEl.textContent = "Error: " + err.message;
     } finally {
+      // Hide overlay after 1s
       setTimeout(() => overlay.classList.remove("active"), 1000);
       if (cooldownEl.style.display === "none") {
         sendBtn.disabled = false;
@@ -350,6 +366,5 @@
     }
   });
 </script>
-  
 </body>
 </html>
