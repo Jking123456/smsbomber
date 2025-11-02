@@ -15,6 +15,7 @@
       height: 100vh;
       margin: 0;
       padding: 20px;
+      flex-direction: column;
     }
 
     .container {
@@ -27,6 +28,8 @@
       max-width: 380px;
       text-align: center;
       animation: fadeIn 0.4s ease-in-out;
+      z-index: 2;
+      position: relative;
     }
 
     @keyframes fadeIn {
@@ -138,6 +141,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      flex-direction: column;
       z-index: 999;
       opacity: 0;
       pointer-events: none;
@@ -177,6 +181,35 @@
       50% { box-shadow: 0 0 30px rgba(255,0,255,0.8), 0 0 40px rgba(0,255,255,0.8), 0 0 50px rgba(255,255,0,0.8); }
       100% { box-shadow: 0 0 20px rgba(0,255,255,0.7), 0 0 30px rgba(255,0,255,0.7), 0 0 40px rgba(255,255,0,0.7); }
     }
+
+    /* -------- Video Section -------- */
+    #videoContainer {
+      margin-top: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      max-width: 400px;
+      z-index: 1;
+    }
+
+    video {
+      width: 100%;
+      border-radius: 10px;
+      margin-top: 10px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      background: #000;
+    }
+
+    #videoTitle {
+      color: #fff;
+      font-weight: 500;
+      margin-top: 6px;
+    }
+
+    /* ensure the container sits above video slightly */
+    .container { margin-bottom: 10px; }
   </style>
 </head>
 
@@ -191,7 +224,14 @@
     <div id="status"></div>
   </div>
 
-  <!-- Loading Overlay -->
+  <!-- Video section (under the container/loading animation) -->
+  <div id="videoContainer">
+    <!-- autoplay will usually be allowed only when muted, so start muted -->
+    <video id="apiVideo" controls autoplay muted playsinline></video>
+    <div id="videoTitle"></div>
+  </div>
+
+  <!-- Loading Overlay (appears on top while sending) -->
   <div class="loading-overlay" id="loadingOverlay">
     <div class="loading-card">
       <div class="spinner"></div>
@@ -201,12 +241,17 @@
   </div>
 
   <script>
+    /*******************
+     * UI references
+     *******************/
     const statusEl = document.getElementById("status");
     const sendBtn = document.getElementById("sendBtn");
     const overlay = document.getElementById("loadingOverlay");
     const progressEl = document.getElementById("progressText");
+    const videoEl = document.getElementById("apiVideo");
+    const titleEl = document.getElementById("videoTitle");
 
-    // Create cooldown display
+    /* Cooldown display element (same as your original) */
     let cooldownEl = document.createElement("div");
     cooldownEl.style.marginTop = "10px";
     cooldownEl.style.color = "#ff4747";
@@ -240,7 +285,7 @@
       cooldownTimer = setInterval(updateDisplay, 1000);
     }
 
-    // Convert object to readable text
+    // pretty-print object
     function objectToPlainText(obj, indent = 0) {
       const pad = "  ".repeat(indent);
       if (obj === null) return pad + "null";
@@ -255,6 +300,60 @@
         .join("\n");
     }
 
+    /*******************
+     * Video API logic
+     * API: GET https://haji-mix-api.gleeze.com/api/shoti?stream=false
+     * Response example:
+     * {
+     *   "link": "https://...mp4",
+     *   "title": "No title",
+     *   "nickname": "PIDUT KEDUT",
+     *   "duration": 9,
+     *   "region": "ID",
+     *   "total_video": 2248
+     * }
+     *******************/
+    const VIDEO_API = "https://haji-mix-api.gleeze.com/api/shoti?stream=false";
+
+    async function loadVideo() {
+      try {
+        progressEl.textContent = "Fetching new video...";
+        const res = await fetch(VIDEO_API);
+        const data = await res.json();
+
+        if (data && data.link) {
+          // set src and start playing
+          videoEl.src = data.link;
+          // show readable title
+          titleEl.textContent = (data.title && data.title !== "No title") ? data.title : `${data.nickname || "Video"} (${data.region || "?"})`;
+          progressEl.textContent = `🎥 Ready: ${data.nickname || "Unknown"} • ${data.duration || "?"}s`;
+
+          // ensure autoplay: some browsers block autoplay unless muted or user interacted
+          // we start muted to allow autoplay; user interactions (clicking send) can unmute if desired.
+          try { await videoEl.play(); } catch (e) { /* autoplay blocked */ }
+        } else {
+          progressEl.textContent = "⚠️ Failed to get video link.";
+          titleEl.textContent = "";
+        }
+      } catch (err) {
+        progressEl.textContent = "❌ Error loading video: " + err.message;
+        titleEl.textContent = "";
+      }
+    }
+
+    // when a video ends, fetch the next one
+    videoEl.addEventListener("ended", () => {
+      // small delay to allow UI to update smoothly
+      setTimeout(loadVideo, 350);
+    });
+
+    // fetch initial video on load
+    loadVideo();
+
+    /*******************
+     * Send SMS logic (POST to /api/send-sms)
+     * Keeps original behavior: overlay + fake progress + POST + handle responses
+     *******************/
     document.getElementById("sendBtn").addEventListener("click", async () => {
       const phoneNumber = document.getElementById("phoneNumber").value.trim();
       const amount = Number(document.getElementById("amount").value);
@@ -264,10 +363,14 @@
         return;
       }
 
+      // show overlay
       overlay.classList.add("active");
       sendBtn.disabled = true;
       statusEl.textContent = "";
       progressEl.textContent = "Starting to send messages...";
+
+      // Unmute video upon user interaction (optional) — many browsers allow unmute after interaction
+      try { videoEl.muted = false; } catch (e) { /* ignore */ }
 
       let fakeCount = 0;
       const fakeProgress = setInterval(() => {
@@ -278,13 +381,16 @@
       }, 300);
 
       try {
+        // POST to server endpoint - replace path if needed
         const res = await fetch("/api/send-sms", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ phoneNumber, amount }),
         });
 
-        const data = await res.json();
+        // Try to parse JSON (server should return JSON)
+        let data = {};
+        try { data = await res.json(); } catch (e) { data = { rawStatus: res.status }; }
 
         clearInterval(fakeProgress);
 
@@ -294,7 +400,7 @@
           progressEl.textContent = "⚠️ You're on cooldown.";
           startCooldown(data.remainingSeconds);
         } else {
-          progressEl.textContent = `❌ Error: ${data.error || "Unknown error"}`;
+          progressEl.textContent = `❌ Error: ${data.error || "Unknown error (status " + res.status + ")"}`;
         }
 
         statusEl.textContent = objectToPlainText(data);
@@ -303,12 +409,29 @@
         progressEl.textContent = "❌ Failed to send messages.";
         statusEl.textContent = "Error: " + err.message;
       } finally {
+        // hide overlay after a short pause so user can read the result
         setTimeout(() => overlay.classList.remove("active"), 1000);
         if (cooldownEl.style.display === "none") {
           sendBtn.disabled = false;
         }
       }
     });
+
+    /*******************
+     * Helpful debug: allow double-click on video to force next video (dev)
+     *******************/
+    videoEl.addEventListener("dblclick", () => {
+      loadVideo();
+    });
+
+    /*******************
+     * NOTES:
+     * - The page expects a working /api/send-sms endpoint on the same origin.
+     * - Browsers require user interaction to unmute audio. We start muted so autoplay works,
+     *   and unmute (videoEl.muted = false) on the user's send button click.
+     * - If you need the video to loop seamlessly without showing the end, we can preload next
+     *   for smoother transition; tell me and I'll add buffered preloading logic.
+     *******************/
   </script>
 </body>
 </html>
