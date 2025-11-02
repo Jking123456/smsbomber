@@ -94,26 +94,6 @@
       color: #111;
     }
 
-    h3 {
-      margin-top: 25px;
-      color: #333;
-      font-size: 16px;
-    }
-
-    #stats {
-      margin-top: 10px;
-      background: #f8f9fa;
-      border-radius: 10px;
-      padding: 10px;
-      text-align: left;
-      display: none;
-      border: 1px solid #e1e1e1;
-      font-size: 12px;
-      line-height: 1.4;
-    }
-
-    .stat-line { margin: 4px 0; }
-    .refresh { margin-top: 6px; font-size: 11px; color: #777; text-align: center; }
     .note { font-size: 12px; color: #555; margin-top: 6px; }
 
     @media (max-width: 480px) {
@@ -123,7 +103,6 @@
     }
 
     /* -------- Gradient Loading Overlay + Spinner -------- */
-
     .spinner {
       width: 26px;
       height: 26px;
@@ -133,10 +112,7 @@
       animation: spin 0.9s linear infinite, glow 1.8s ease-in-out infinite alternate;
     }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
+    @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes glow {
       from { box-shadow: 0 0 6px rgba(255, 255, 255, 0.3); }
       to { box-shadow: 0 0 15px rgba(255, 255, 255, 0.9); }
@@ -213,10 +189,6 @@
 
     <button id="sendBtn">Bombahin mo na yah! 🚀</button>
     <div id="status"></div>
-
-    <h3>📊 Live API Stats</h3>
-    <div id="stats"></div>
-    <div class="refresh" id="refreshInfo"></div>
   </div>
 
   <!-- Loading Overlay -->
@@ -230,8 +202,6 @@
 
   <script>
     const statusEl = document.getElementById("status");
-    const statsDiv = document.getElementById("stats");
-    const refreshInfo = document.getElementById("refreshInfo");
     const sendBtn = document.getElementById("sendBtn");
     const overlay = document.getElementById("loadingOverlay");
 
@@ -262,36 +232,6 @@
         }
       }
       return lines.join("\n");
-    }
-
-    function renderStats(data, indent = 0) {
-      const indentSpace = "&nbsp;".repeat(indent * 4);
-      let html = "";
-      for (const [key, value] of Object.entries(data)) {
-        if (typeof value === "object" && value !== null) {
-          html += `<div class="stat-line">${indentSpace}<b>${key}:</b></div>`;
-          html += renderStats(value, indent + 1);
-        } else {
-          html += `<div class="stat-line">${indentSpace}<b>${key}:</b> ${value}</div>`;
-        }
-      }
-      return html;
-    }
-
-    async function loadStats() {
-      try {
-        const res = await fetch("/api/stats");
-        const data = await res.json();
-        if (res.ok) {
-          statsDiv.innerHTML = renderStats(data);
-          statsDiv.style.display = "block";
-          refreshInfo.textContent = "Last updated: " + new Date().toLocaleTimeString() + " (auto refresh every 30s)";
-        } else {
-          statsDiv.innerHTML = "<p style='color:red;'>❌ Failed to load stats</p>";
-        }
-      } catch (err) {
-        statsDiv.innerHTML = `<p style="color:red;">⚠️ Error: ${err.message}</p>`;
-      }
     }
 
     document.getElementById("sendBtn").addEventListener("click", async () => {
@@ -332,8 +272,6 @@
         const plain = objectToPlainText(data);
         statusEl.style.color = res.ok ? "#111" : "red";
         statusEl.textContent = plain;
-
-        if (res.ok) loadStats();
       } catch (err) {
         statusEl.style.color = "red";
         statusEl.textContent = "⚠️ Error: " + err.message;
@@ -342,9 +280,6 @@
         sendBtn.disabled = false;
       }
     });
-
-    loadStats();
-    setInterval(loadStats, 30000);
   </script>
 </body>
 </html>
