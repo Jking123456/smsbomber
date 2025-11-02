@@ -33,7 +33,7 @@ export default async function handler(req, res) {
   }
 
   // Lock amount to 50
-  if (Number(amount) !== 50) {
+  if (Number(amount) !== 20) {
     return res.status(400).json({ error: "Amount is locked to 50 only." });
   }
 
