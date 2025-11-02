@@ -223,7 +223,7 @@
     // Fetch random Shoti video
     async function loadShotiVideo() {
       try {
-        const res = await fetch("https://api.codetabs.com/v1/proxy/?quest=https://haji-mix-api.gleeze.com/api/shoti?stream=false");
+        const res = await fetch("/api/shoti");
         const data = await res.json();
         if (data.link) {
           videoPlayer.src = data.link;
