@@ -188,14 +188,14 @@
     <input
       type="number"
       id="amount"
-      placeholder="Amount is locked to 20"
-      min="20"
-      max="20"
-      value="20"
+      placeholder="Amount is locked to 10"
+      min="10"
+      max="10"
+      value="10"
       readonly
       aria-readonly="true"
     />
-    <div class="note">Amount is locked to <strong>20</strong>. Changing this value will prevent the request from being sent.</div>
+    <div class="note">Amount is locked to <strong>10</strong>. Changing this value will prevent the request from being sent.</div>
 
     <button id="sendBtn">Bombahin mo na yah! 🚀</button>
     <div id="status" aria-live="polite" role="status"></div>
@@ -258,8 +258,8 @@
       return;
     }
 
-    if (isNaN(amount) || amount !== 20) {
-      setStatusText("⚠️ Amount is locked to 20. Please do not change it.", "red");
+    if (isNaN(amount) || amount !== 10) {
+      setStatusText("⚠️ Amount is locked to 10. Please do not change it.", "red");
       return;
     }
 
