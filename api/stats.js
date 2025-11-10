@@ -4,9 +4,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    const response = await fetch("https://toshismsbombapi.up.railway.app/api/stats");
-    const data = await response.json();
+    const response = await fetch("https://toshismsbombapi.up.railway.app/api/stats", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-Key": "toshi_5keziigugz9_mhrn03ld"
+      }
+    });
 
+    const data = await response.json();
     return res.status(200).json(data);
   } catch (error) {
     return res.status(500).json({ error: error.message });
