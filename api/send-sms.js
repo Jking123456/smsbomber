@@ -16,7 +16,7 @@ export default async function handler(req, res) {
         "Content-Type": "application/json",
         "X-API-Key": "toshi_5keziigugz9_mhrn03ld",
       },
-      body: JSON.stringify({ phoneNumber, amount }),
+      body: JSON.stringify({ phoneNumber, totalRequests }),
     });
 
     let data;
