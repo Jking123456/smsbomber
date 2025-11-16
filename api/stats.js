@@ -8,7 +8,7 @@ export default async function handler(req, res) {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        "X-API-Key": "toshi_5keziigugz9_mhrn03ld"
+        "X-API-Key": "toshi_8qkczdpyos8_mi1hfcay"
       }
     });
 
