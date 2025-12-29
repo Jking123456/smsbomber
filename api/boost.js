@@ -6,45 +6,41 @@ export default async function handler(req, res) {
     const stealthHeaders = {
         'apikey': ANON_KEY,
         'Authorization': `Bearer ${ANON_KEY}`,
-        'Content-Type': 'application/json',
-        'x-client-info': 'supabase-js/2.39.7',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        'x-client-info': 'supabase-js/2.39.7', // Matches original client
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': '*/*',
+        'Sec-Fetch-Site': 'cross-site',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Dest': 'empty',
+        'Referer': 'https://auto-boost-void-booster.vercel.app/',
     };
 
     try {
-        // Step 1: Bind/Session Handshake
+        // Step 1: Re-bind to refresh the session token
         await fetch('https://emmrerremmbnrxyutunp.supabase.co/rest/v1/rpc/bind_device_to_key', {
             method: 'POST',
-            headers: stealthHeaders,
+            headers: { ...stealthHeaders, 'Content-Type': 'application/json' },
             body: JSON.stringify({ p_key: USER_KEY, p_device_id: DEVICE_ID })
         });
 
-        // Step 2: Trigger Boost with alternate 'type' and mobile URL
-        // E003 Fix: Many proxies prefer the 'm.facebook.com' format or just the ID.
-        const targetUrl = "https://m.facebook.com/profile.php?id=61583017822517";
-        
+        // Step 2: The Boost Call
         const params = new URLSearchParams({
             action: 'start',
-            url: targetUrl,
-            type: 'fb_followers', // Changed from 'facebook_followers' to 'fb_followers'
-            count: '500',         // Increased to 500 (standard minimum for many scripts)
+            url: "https://www.facebook.com/profile.php?id=61583017822517",
+            type: 'facebook_followers',
+            count: '100',
             device_id: DEVICE_ID
         });
 
-        const boostResponse = await fetch(`https://emmrerremmbnrxyutunp.supabase.co/functions/v1/boost-proxy?${params}`, {
+        const response = await fetch(`https://emmrerremmbnrxyutunp.supabase.co/functions/v1/boost-proxy?${params}`, {
             method: 'GET',
             headers: stealthHeaders
         });
 
-        const data = await boostResponse.json();
-
-        return res.status(200).json({
-            success: data.error ? false : true,
-            message: data.error ? `Error: ${data.code}` : "Request Sent",
-            server_data: data
-        });
+        const data = await response.json();
+        return res.status(200).json(data);
 
     } catch (error) {
-        return res.status(500).json({ success: false, error: error.message });
+        return res.status(500).json({ error: error.message });
     }
 }
