@@ -3,7 +3,7 @@ export default async function handler(req, res) {
     const USER_KEY = "VOID-FBOA-SEIK-FAZR-D92E";
     const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtbXJlcnJlbW1ibnJ4eXV0dW5wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY2MTkwODIsImV4cCI6MjA4MjE5NTA4Mn0.tVCTSr8FZI8Z6KyiVqsVRga0qwRrEHkIZIHT2eDcvWs";
 
-    const headers = {
+    const stealthHeaders = {
         'apikey': ANON_KEY,
         'Authorization': `Bearer ${ANON_KEY}`,
         'Content-Type': 'application/json',
@@ -12,48 +12,35 @@ export default async function handler(req, res) {
     };
 
     try {
-        // Step 1: Mandatory Binding (Refresh session)
-        const bindResponse = await fetch('https://emmrerremmbnrxyutunp.supabase.co/rest/v1/rpc/bind_device_to_key', {
+        // Step 1: Bind/Session Handshake
+        await fetch('https://emmrerremmbnrxyutunp.supabase.co/rest/v1/rpc/bind_device_to_key', {
             method: 'POST',
-            headers: headers,
-            body: JSON.stringify({ 
-                p_key: USER_KEY, 
-                p_device_id: DEVICE_ID 
-            })
+            headers: stealthHeaders,
+            body: JSON.stringify({ p_key: USER_KEY, p_device_id: DEVICE_ID })
         });
 
-        // Step 2: Trigger Boost Proxy
-        // We use encodeURIComponent to ensure the URL doesn't break the query string
-        const targetUrl = encodeURIComponent("https://www.facebook.com/profile.php?id=61583017822517");
+        // Step 2: Trigger Boost with alternate 'type' and mobile URL
+        // E003 Fix: Many proxies prefer the 'm.facebook.com' format or just the ID.
+        const targetUrl = "https://m.facebook.com/profile.php?id=61583017822517";
         
-        // E003 Fix: The 'type' must match exactly, and 'count' usually needs to be higher
-        const params = [
-            `action=start`,
-            `url=${targetUrl}`,
-            `type=facebook_followers`,
-            `count=100`, // Increased from 1 to 100
-            `device_id=${DEVICE_ID}`
-        ].join('&');
+        const params = new URLSearchParams({
+            action: 'start',
+            url: targetUrl,
+            type: 'fb_followers', // Changed from 'facebook_followers' to 'fb_followers'
+            count: '500',         // Increased to 500 (standard minimum for many scripts)
+            device_id: DEVICE_ID
+        });
 
         const boostResponse = await fetch(`https://emmrerremmbnrxyutunp.supabase.co/functions/v1/boost-proxy?${params}`, {
             method: 'GET',
-            headers: headers
+            headers: stealthHeaders
         });
 
         const data = await boostResponse.json();
 
-        // Check for error codes
-        if (data.code === "E003") {
-            return res.status(200).json({
-                success: false,
-                message: "Still getting E003. Trying alternative 'type' names might be required.",
-                suggestion: "Try changing 'facebook_followers' to 'facebook_profile_followers' or 'fb_subscribers'.",
-                server_response: data
-            });
-        }
-
         return res.status(200).json({
-            success: true,
+            success: data.error ? false : true,
+            message: data.error ? `Error: ${data.code}` : "Request Sent",
             server_data: data
         });
 
