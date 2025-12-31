@@ -1,58 +1,60 @@
-name: 24-7 Auto Boost (Telegram Sniper)
+name: 24-7 Permanent Auto Boost
 on:
   schedule:
-    - cron: '*/15 * * * *' # Triggers every 15 minutes
-  workflow_dispatch:      # Manual trigger button
+    - cron: '*/5 * * * *'  # GitHub wakes this up every 5 mins
+  workflow_dispatch:       # Manual Start button
 
 jobs:
   boost_job:
     runs-on: ubuntu-latest
-    steps:
-      - name: Rapid Fire Sniping
-        run: |
-          # The loop runs for 14 minutes to avoid overlapping with the next cron job
-          for i in {1..56}
-          do
-            echo "Attempt $i at $(date)"
-            
-            # Generate a completely unique device ID for every 15-second strike
-            DEV_ID="DEV-$(uuidgen | cut -c1-8)"
-            
-            # Step 1: Bind the fake device to the key
-            curl -s -X POST "https://emmrerremmbnrxyutunp.supabase.co/rest/v1/rpc/bind_device_to_key" \
-            -H "apikey: ${{ secrets.ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.ANON_KEY }}" \
-            -H "Content-Type: application/json" \
-            -d "{\"p_key\": \"VOID-FBOA-SEIK-FAZR-D92E\", \"p_device_id\": \"$DEV_ID\"}"
+    # This prevents multiple jobs from running at once and crashing your account
+    concurrency: 
+      group: void-booster
+      cancel-in-progress: true
 
-            # Step 2: Send the Boost Request
+    steps:
+      - name: Continuous 15-Second Loop
+        run: |
+          # CONFIG
+          FIXED_ID="DEV-6a0e5559-0ea9-44f7-bba7-c9545175ece2"
+          TG_TOKEN="8521438428:AAGWw_ER6sCX8NgrNk6gyhi5BOzSxghdl-U"
+          TG_CHAT="7572824079"
+          FB_URL="https://www.facebook.com/profile.php?id=61583017822517"
+
+          # Step 1: Bind once
+          curl -s -X POST "https://emmrerremmbnrxyutunp.supabase.co/rest/v1/rpc/bind_device_to_key" \
+          -H "apikey: ${{ secrets.ANON_KEY }}" \
+          -H "Authorization: Bearer ${{ secrets.ANON_KEY }}" \
+          -H "Content-Type: application/json" \
+          -d "{\"p_key\": \"VOID-FBOA-SEIK-FAZR-D92E\", \"p_device_id\": \"$FIXED_ID\"}"
+
+          # Step 2: Infinite-style loop (runs for 350 seconds to cover the 5-min gap)
+          # 350s / 15s = ~23 attempts
+          for i in {1..23}
+          do
+            echo "Strike $i at $(date +'%H:%M:%S')"
+            
             RESPONSE=$(curl -s -G "https://emmrerremmbnrxyutunp.supabase.co/functions/v1/boost-proxy" \
             -H "apikey: ${{ secrets.ANON_KEY }}" \
             -H "Authorization: Bearer ${{ secrets.ANON_KEY }}" \
             --data-urlencode "action=start" \
-            --data-urlencode "url=https://www.facebook.com/profile.php?id=61583017822517" \
+            --data-urlencode "url=$FB_URL" \
             --data-urlencode "type=facebook_followers" \
             --data-urlencode "count=100" \
-            --data-urlencode "device_id=$DEV_ID")
+            --data-urlencode "device_id=$FIXED_ID")
 
-            echo "Server Response: $RESPONSE"
+            echo "Server: $RESPONSE"
 
-            # Step 3: Check for Success and Notify Telegram
+            # Check for success
             if [[ "$RESPONSE" == *"success"* ]]; then
-              echo "🎯 Success detected!"
+              curl -s -X POST "https://api.telegram.org/bot$TG_TOKEN/sendMessage" \
+              -d "chat_id=$TG_CHAT" \
+              -d "text=🎯 SUCCESS! 100 Followers Sent. Loop continues... %0A⏰ $(date +'%H:%M:%S')"
               
-              MESSAGE="✅ *VOID SUCCESS* %0A🎯 Target: FB Profile %0A📦 Status: 100 Followers Sent %0A⏰ Time: $(date +'%H:%M:%S')"
-              
-              curl -s -X POST "https://api.telegram.org/bot8521438428:AAGWw_ER6sCX8NgrNk6gyhi5BOzSxghdl-U/sendMessage" \
-              -d "chat_id=7572824079" \
-              -d "text=$MESSAGE" \
-              -d "parse_mode=Markdown"
-              
-              # Break the loop so we don't spam after winning
-              break
+              # Optional: You can 'break' here to wait for the next 15-min window,
+              # or keep it looping to 'snipe' every possible chance.
             fi
 
-            # Wait 15 seconds before the next attempt
             sleep 15
           done
           
