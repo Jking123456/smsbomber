@@ -5,22 +5,22 @@ export default async function handler(req, res) {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_ANON_KEY;
 
-  // 1. Check if the keys actually exist in the environment
+  // 1. Safety Check: If these are missing, the server will tell us why
   if (!url || !key) {
     return res.status(200).json({ 
       success: false, 
-      error: "Vercel Environment Variables are missing. Please add SUPABASE_URL and SUPABASE_ANON_KEY to your project settings." 
+      error: "Variables Missing: Go to Vercel Settings and ensure SUPABASE_URL and SUPABASE_ANON_KEY are added, then Redeploy." 
     });
   }
 
   try {
     const supabase = createClient(url, key);
 
-    // 2. Try to fetch from the 'whitelist' table
+    // 2. Fetch from 'whitelist' (The table we found in loadmenu.lua)
     const { data, error } = await supabase
       .from('whitelist')
       .select('*')
-      .limit(20);
+      .limit(50);
 
     if (error) {
       return res.status(200).json({ success: false, error: error.message });
@@ -29,7 +29,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, data: data });
 
   } catch (err) {
-    // This catches the 'fetch failed' error and explains why
     return res.status(200).json({ 
       success: false, 
       error: "Connection Failed: " + err.message 
