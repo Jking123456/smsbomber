@@ -1,32 +1,33 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>RUDO MONITOR</title>
+    <title>RUDO KEY MONITOR</title>
     <style>
         body { background: #000; color: #00ff41; font-family: monospace; padding: 20px; }
         .status { border: 1px solid #00ff41; padding: 15px; background: #111; margin-bottom: 20px; }
         table { width: 100%; border-collapse: collapse; }
         th, td { border: 1px solid #333; padding: 10px; text-align: left; }
-        th { color: white; background: #222; }
+        th { background: #222; color: #fff; }
     </style>
 </head>
 <body>
     <h1>> RUDO_DATABASE_LIVE</h1>
-    <div id="status" class="status">Status: Connecting to Vercel...</div>
+    <div id="status" class="status">Status: Initializing...</div>
     <div id="output"></div>
 
     <script>
         async function load() {
+            const status = document.getElementById('status');
             try {
                 const res = await fetch('/api/key');
                 const result = await res.json();
                 
                 if (!result.success) {
-                    document.getElementById('status').innerHTML = "ERROR: " + result.error;
+                    status.innerHTML = "ERROR: " + result.error;
                     return;
                 }
 
-                document.getElementById('status').innerText = "ONLINE: Found " + result.data.length + " keys.";
+                status.innerHTML = `CONNECTED. Found ${result.data.length} records in 'whitelist'.`;
                 
                 if (result.data.length > 0) {
                     let html = '<table><thead><tr>';
@@ -40,7 +41,7 @@
                     document.getElementById('output').innerHTML = html + '</tbody></table>';
                 }
             } catch (e) {
-                document.getElementById('status').innerText = "CORS or Network Error: " + e.message;
+                status.innerHTML = "Frontend Error: " + e.message;
             }
         }
         load();
