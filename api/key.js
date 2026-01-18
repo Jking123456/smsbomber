@@ -1,35 +1,34 @@
 import { createClient } from '@supabase/supabase-js'
 
 export default async function handler(req, res) {
-  // Pulling from Vercel Dashboard Environment Variables
-  const SUPABASE_URL = process.env.SUPABASE_URL;
-  const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_ANON_KEY;
 
-  // 1. Check if variables are loaded
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  // If this check triggers, it means you need to Redeploy in Vercel
+  if (!url || !key) {
     return res.status(200).json({ 
       success: false, 
-      error: "Environment Variables Missing in Vercel Dashboard." 
+      error: "Vercel cannot see your Environment Variables. Go to Settings, add them, then REDEPLOY." 
     });
   }
 
   try {
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    // 2. Fetch data from the 'whitelist' table
+    const supabase = createClient(url, key);
+    
+    // Attempt to fetch from 'whitelist' table
     const { data, error } = await supabase
       .from('whitelist')
       .select('*')
-      .order('created_at', { ascending: false }) // Show newest keys first
-      .limit(100);
+      .limit(50);
 
     if (error) {
-        return res.status(200).json({ success: false, error: error.message });
+      return res.status(200).json({ success: false, error: error.message });
     }
 
     return res.status(200).json({ success: true, data: data });
 
   } catch (err) {
-    return res.status(200).json({ success: false, error: "Server Error: " + err.message });
+    // This prevents the "fetch failed" crash from taking down the site
+    return res.status(200).json({ success: false, error: "Network Error: " + err.message });
   }
 }
