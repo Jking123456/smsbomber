@@ -1,52 +1,118 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Rudo Key Tracker</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RUDO DELUXE | Key Monitor</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { background: #111; color: #0f0; font-family: monospace; padding: 20px; }
-        .error { color: #ff4444; border: 1px solid #ff4444; padding: 10px; margin-top: 10px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #333; padding: 8px; text-align: left; }
+        :root { --primary: #00ff41; --bg: #0a0a0a; --panel: #161616; }
+        body { background-color: var(--bg); color: white; font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; }
+        .header { border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 20px; }
+        .status-box { background: var(--panel); padding: 15px; border-left: 5px solid var(--primary); margin-bottom: 20px; }
+        .error-box { background: #2a1111; color: #ff6b6b; padding: 15px; border: 1px solid #ff6b6b; display: none; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; background: var(--panel); }
+        th { background: #222; color: var(--primary); text-align: left; padding: 12px; border: 1px solid #333; }
+        td { padding: 10px; border: 1px solid #333; font-size: 14px; }
+        .loading { animation: blink 1s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        pre { background: #000; padding: 10px; overflow-x: auto; color: var(--primary); font-size: 12px; }
     </style>
 </head>
 <body>
-    <h1>> SYSTEM_STATUS: MONITORING</h1>
-    <div id="status">Connecting to Backend API...</div>
-    <div id="error-log"></div>
-    <div id="data-display"></div>
 
-    <script>
-        async function start() {
-            try {
-                // 1. Fetch config from your Vercel API
-                const res = await fetch('/api/key');
-                const config = await res.json();
-                document.getElementById('status').innerText = "Connected to API. Checking Database...";
+<div class="container">
+    <div class="header">
+        <h1>RUDO_DATABASE_EXPLORER v1.0</h1>
+    </div>
 
-                // 2. Init Supabase
-                const supabaseClient = supabase.createClient(config.url, config.anonKey);
+    <div id="statusBox" class="status-box">
+        Status: <span id="statusText" class="loading">CONNECTING TO VERCEL API...</span>
+    </div>
 
-                // 3. Try to fetch from the 'keys' table (RUDO's likely table name)
-                const { data, error } = await supabaseClient.from('keys').select('*');
+    <div id="errorBox" class="error-box"></div>
 
-                if (error) {
-                    throw error;
-                }
+    <div id="content">
+        </div>
+</div>
 
-                document.getElementById('status').innerText = `Success: Found ${data.length} records.`;
-                document.getElementById('data-display').innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+<script>
+    async function initExplorer() {
+        const statusText = document.getElementById('statusText');
+        const errorBox = document.getElementById('errorBox');
+        const content = document.getElementById('content');
 
-            } catch (err) {
-                document.getElementById('status').innerText = "FAILED";
-                document.getElementById('error-log').innerHTML = `
-                    <div class="error">
-                        <strong>ERROR:</strong> ${err.message}<br>
-                        <em>Hint: If it says 'relation does not exist', the table name is wrong.</em>
-                    </div>`;
+        try {
+            // 1. Fetch credentials from your Vercel API
+            const res = await fetch('/api/key');
+            if (!res.ok) throw new Error("Could not reach /api/key endpoint. Check your Vercel function.");
+            
+            const config = await res.json();
+            
+            // Validate the key length
+            if (!config.anonKey || config.anonKey.length < 50) {
+                throw new Error("Invalid Anon Key detected. Ensure the FULL 3-part key is in Vercel Env Variables.");
             }
+
+            statusText.innerText = "INITIALIZING SUPABASE CLIENT...";
+            const supabaseClient = supabase.createClient(config.url, config.anonKey);
+
+            // 2. List of tables to scan
+            const tables = ['keys', 'users', 'whitelist', 'vips', 'profiles', 'hwid'];
+            let foundData = null;
+            let activeTable = "";
+
+            for (const table of tables) {
+                statusText.innerText = `SCANNING TABLE: [${table}]...`;
+                
+                const { data, error } = await supabaseClient.from(table).select('*').limit(50);
+                
+                if (!error && data) {
+                    foundData = data;
+                    activeTable = table;
+                    break; 
+                }
+            }
+
+            if (foundData) {
+                statusText.innerText = `CONNECTION ESTABLISHED: TABLE [${activeTable}]`;
+                statusText.classList.remove('loading');
+                
+                // 3. Build Table UI
+                let html = `<h3>Table: ${activeTable} (${foundData.length} records)</h3>`;
+                html += `<table><thead><tr>`;
+                
+                // Get headers from first object
+                if (foundData.length > 0) {
+                    Object.keys(foundData[0]).forEach(key => html += `<th>${key}</th>`);
+                    html += `</tr></thead><tbody>`;
+                    
+                    foundData.forEach(row => {
+                        html += `<tr>`;
+                        Object.values(row).forEach(val => html += `<td>${val}</td>`);
+                        html += `</tr>`;
+                    });
+                    html += `</tbody></table>`;
+                } else {
+                    html += `<p>Table is empty (No keys generated yet).</p>`;
+                }
+                
+                content.innerHTML = html;
+            } else {
+                throw new Error("Connected to Supabase, but could not find a valid table. The developer might be using a custom table name.");
+            }
+
+        } catch (err) {
+            statusText.innerText = "CRITICAL FAILURE";
+            statusText.classList.remove('loading');
+            errorBox.style.display = "block";
+            errorBox.innerHTML = `<strong>Error:</strong> ${err.message}<br><small>Check Vercel logs and your Env Variables.</small>`;
         }
-        start();
-    </script>
+    }
+
+    window.onload = initExplorer;
+</script>
+
 </body>
 </html>
