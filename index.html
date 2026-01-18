@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Live Key Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body style="background:#111; color:white; font-family:sans-serif;">
+    <h1>Database Monitor</h1>
+    <div id="logs">Initialising...</div>
+
+    <script>
+        async function initTracker() {
+            // 1. Get keys from your Vercel backend
+            const response = await fetch('/api/key');
+            const config = await response.json();
+
+            // 2. Connect to Supabase
+            const supabase = supabase.createClient(config.url, config.anonKey);
+
+            // 3. Try to fetch the user log table
+            // Note: Change 'profiles' to the actual table name used in the APK
+            const { data, error } = await supabase.from('profiles').select('*');
+
+            if (error) {
+                document.getElementById('logs').innerHTML = "Error: " + error.message;
+            } else {
+                document.getElementById('logs').innerHTML = JSON.stringify(data, null, 2);
+            }
+        }
+        initTracker();
+    </script>
+</body>
+</html>
