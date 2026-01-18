@@ -1,71 +1,94 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>RUDO Key Monitor</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RUDO DELUXE | Database Monitor</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { background: #0a0a0a; color: #00ff41; font-family: 'Courier New', monospace; padding: 20px; }
-        .status-box { border: 1px solid #00ff41; padding: 15px; margin-bottom: 20px; background: #111; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #333; padding: 10px; text-align: left; }
-        th { color: #fff; background: #222; }
-        .loading { animation: blink 1s infinite; }
-        @keyframes blink { 50% { opacity: 0; } }
+        :root { --neon: #00ff41; --bg: #050505; --card: #121212; }
+        body { background: var(--bg); color: white; font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 20px; }
+        .dashboard { max-width: 1100px; margin: auto; }
+        .status-header { background: var(--card); border-left: 4px solid var(--neon); padding: 20px; margin-bottom: 20px; border-radius: 4px; }
+        .status-header h2 { margin: 0; color: var(--neon); font-size: 1.2rem; text-transform: uppercase; }
+        table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 8px; overflow: hidden; margin-top: 20px; }
+        th { background: #1a1a1a; color: var(--neon); text-align: left; padding: 15px; border-bottom: 2px solid #222; }
+        td { padding: 12px 15px; border-bottom: 1px solid #222; font-size: 0.9rem; color: #ccc; }
+        tr:hover { background: #1a1a1a; }
+        .loading-text { font-style: italic; color: #888; }
+        .error-msg { color: #ff4444; background: #221111; padding: 15px; border: 1px solid #441111; border-radius: 4px; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <h1>> RUDO_DATABASE_LIVE_FEED</h1>
-    <div id="status" class="status-box">Status: <span class="loading">Initalizing...</span></div>
-    <div id="display"></div>
 
-    <script>
-        async function loadData() {
-            const status = document.getElementById('status');
-            try {
-                // 1. Get keys from your Vercel API
-                const res = await fetch('/api/key');
-                const config = await res.json();
-                const supabaseClient = supabase.createClient(config.url, config.anonKey);
+<div class="dashboard">
+    <div class="status-header">
+        <h2>Rudo Deluxe | Live Key Feed</h2>
+        <p id="systemStatus" class="loading-text">Connecting to Vercel Backend...</p>
+    </div>
 
-                // 2. Try these table names one by one
-                const tableNames = ['keys', 'users', 'whitelist', 'vips', 'profiles'];
-                let activeData = null;
-                let foundTable = "";
+    <div id="errorDisplay"></div>
 
-                for (let name of tableNames) {
-                    status.innerHTML = `Status: Scanning table [${name}]...`;
-                    const { data, error } = await supabaseClient.from(name).select('*').limit(20);
-                    
-                    if (!error && data && data.length > 0) {
-                        activeData = data;
-                        foundTable = name;
-                        break; 
-                    }
-                }
+    <div id="tableContainer">
+        </div>
+</div>
 
-                if (activeData) {
-                    status.innerHTML = `Status: <span style="color:white">CONNECTED TO [${foundTable}]</span>`;
-                    
-                    // 3. Build the table automatically based on whatever data we found
-                    let html = `<table><thead><tr>`;
-                    Object.keys(activeData[0]).forEach(key => html += `<th>${key}</th>`);
-                    html += `</tr></thead><tbody>`;
-                    activeData.forEach(row => {
-                        html += `<tr>`;
-                        Object.values(row).forEach(val => html += `<td>${val}</td>`);
-                        html += `</tr>`;
-                    });
-                    html += `</tbody></table>`;
-                    document.getElementById('display').innerHTML = html;
-                } else {
-                    status.innerHTML = `Status: <span style="color:red">ERROR - No valid tables found.</span>`;
-                }
-            } catch (e) {
-                status.innerHTML = `Status: <span style="color:red">CRITICAL ERROR: ${e.message}</span>`;
+<script>
+    async function startMonitor() {
+        const statusEl = document.getElementById('systemStatus');
+        const errorEl = document.getElementById('errorDisplay');
+        const tableContainer = document.getElementById('tableContainer');
+
+        try {
+            // 1. Fetch the credentials from your Vercel API
+            const response = await fetch('/api/key');
+            if (!response.ok) throw new Error("API Route /api/key not found or failing.");
+            
+            const config = await response.json();
+            
+            // 2. Initialize Supabase
+            const supabaseClient = supabase.createClient(config.url, config.anonKey);
+
+            // 3. Query the 'whitelist' table discovered in loadmenu.lua
+            statusEl.innerText = "Scanning Table: [whitelist]...";
+            const { data, error } = await supabaseClient
+                .from('whitelist')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            if (data && data.length > 0) {
+                statusEl.innerHTML = `Status: <span style="color:#00ff41">CONNECTED</span> | Records Found: ${data.length}`;
+                
+                // 4. Generate the Table UI
+                let tableHtml = `<table><thead><tr>`;
+                // Create headers from keys of the first record
+                Object.keys(data[0]).forEach(key => tableHtml += `<th>${key}</th>`);
+                tableHtml += `</tr></thead><tbody>`;
+                
+                // Populate rows
+                data.forEach(row => {
+                    tableHtml += `<tr>`;
+                    Object.values(row).forEach(val => tableHtml += `<td>${val || 'NULL'}</td>`);
+                    tableHtml += `</tr>`;
+                });
+                
+                tableHtml += `</tbody></table>`;
+                tableContainer.innerHTML = tableHtml;
+            } else {
+                statusEl.innerText = "Connection successful, but the [whitelist] table is currently empty.";
             }
+
+        } catch (err) {
+            statusEl.innerText = "CONNECTION FAILED";
+            errorEl.innerHTML = `<div class="error-msg"><strong>Error:</strong> ${err.message}</div>`;
+            console.error(err);
         }
-        loadData();
-    </script>
+    }
+
+    window.onload = startMonitor;
+</script>
+
 </body>
 </html>
-
