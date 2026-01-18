@@ -4,47 +4,68 @@
     <title>RUDO Key Monitor</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { background: #000; color: #00ff41; font-family: monospace; padding: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; border: 1px solid #333; }
+        body { background: #0a0a0a; color: #00ff41; font-family: 'Courier New', monospace; padding: 20px; }
+        .status-box { border: 1px solid #00ff41; padding: 15px; margin-bottom: 20px; background: #111; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #333; padding: 10px; text-align: left; }
-        th { background: #111; }
+        th { color: #fff; background: #222; }
+        .loading { animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
     </style>
 </head>
 <body>
-    <h1>> RUDO_DATABASE_LIVE</h1>
-    <div id="status">Scanning tables...</div>
+    <h1>> RUDO_DATABASE_LIVE_FEED</h1>
+    <div id="status" class="status-box">Status: <span class="loading">Initalizing...</span></div>
     <div id="display"></div>
 
     <script>
         async function loadData() {
+            const status = document.getElementById('status');
             try {
+                // 1. Get keys from your Vercel API
                 const res = await fetch('/api/key');
                 const config = await res.json();
                 const supabaseClient = supabase.createClient(config.url, config.anonKey);
 
-                // Try common RUDO table names automatically
-                const tables = ['keys', 'users', 'whitelist', 'vips'];
-                let foundData = null;
+                // 2. Try these table names one by one
+                const tableNames = ['keys', 'users', 'whitelist', 'vips', 'profiles'];
+                let activeData = null;
+                let foundTable = "";
 
-                for (let name of tables) {
-                    const { data, error } = await supabaseClient.from(name).select('*');
-                    if (!error && data.length > 0) {
-                        foundData = data;
-                        document.getElementById('status').innerText = "CONNECTED TO TABLE: " + name;
-                        break;
+                for (let name of tableNames) {
+                    status.innerHTML = `Status: Scanning table [${name}]...`;
+                    const { data, error } = await supabaseClient.from(name).select('*').limit(20);
+                    
+                    if (!error && data && data.length > 0) {
+                        activeData = data;
+                        foundTable = name;
+                        break; 
                     }
                 }
 
-                if (foundData) {
-                    document.getElementById('display').innerHTML = `<pre>${JSON.stringify(foundData, null, 2)}</pre>`;
+                if (activeData) {
+                    status.innerHTML = `Status: <span style="color:white">CONNECTED TO [${foundTable}]</span>`;
+                    
+                    // 3. Build the table automatically based on whatever data we found
+                    let html = `<table><thead><tr>`;
+                    Object.keys(activeData[0]).forEach(key => html += `<th>${key}</th>`);
+                    html += `</tr></thead><tbody>`;
+                    activeData.forEach(row => {
+                        html += `<tr>`;
+                        Object.values(row).forEach(val => html += `<td>${val}</td>`);
+                        html += `</tr>`;
+                    });
+                    html += `</tbody></table>`;
+                    document.getElementById('display').innerHTML = html;
                 } else {
-                    document.getElementById('status').innerText = "Connected, but tables appear empty or names are different.";
+                    status.innerHTML = `Status: <span style="color:red">ERROR - No valid tables found.</span>`;
                 }
             } catch (e) {
-                document.getElementById('status').innerText = "Error: " + e.message;
+                status.innerHTML = `Status: <span style="color:red">CRITICAL ERROR: ${e.message}</span>`;
             }
         }
         loadData();
     </script>
 </body>
 </html>
+
