@@ -2,93 +2,65 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RUDO DELUXE | Database Monitor</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>RUDO DELUXE | KEY TRACKER</title>
     <style>
-        :root { --neon: #00ff41; --bg: #050505; --card: #121212; }
-        body { background: var(--bg); color: white; font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 20px; }
-        .dashboard { max-width: 1100px; margin: auto; }
-        .status-header { background: var(--card); border-left: 4px solid var(--neon); padding: 20px; margin-bottom: 20px; border-radius: 4px; }
-        .status-header h2 { margin: 0; color: var(--neon); font-size: 1.2rem; text-transform: uppercase; }
-        table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 8px; overflow: hidden; margin-top: 20px; }
-        th { background: #1a1a1a; color: var(--neon); text-align: left; padding: 15px; border-bottom: 2px solid #222; }
-        td { padding: 12px 15px; border-bottom: 1px solid #222; font-size: 0.9rem; color: #ccc; }
-        tr:hover { background: #1a1a1a; }
-        .loading-text { font-style: italic; color: #888; }
-        .error-msg { color: #ff4444; background: #221111; padding: 15px; border: 1px solid #441111; border-radius: 4px; margin-top: 10px; }
+        body { background: #050505; color: #00ff41; font-family: monospace; padding: 30px; }
+        .box { border: 1px solid #00ff41; padding: 20px; background: #111; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #222; padding: 12px; text-align: left; }
+        th { background: #1a1a1a; color: #fff; }
+        tr:hover { background: #151515; }
+        .error { color: #ff4444; border-color: #ff4444; }
     </style>
 </head>
 <body>
+    <h1>> RUDO_DATABASE_MONITOR_v2</h1>
+    
+    <div id="statusBox" class="box">Status: Connecting to Proxy...</div>
 
-<div class="dashboard">
-    <div class="status-header">
-        <h2>Rudo Deluxe | Live Key Feed</h2>
-        <p id="systemStatus" class="loading-text">Connecting to Vercel Backend...</p>
-    </div>
+    <div id="tableContainer"></div>
 
-    <div id="errorDisplay"></div>
+    <script>
+        async function loadKeys() {
+            const status = document.getElementById('statusBox');
+            const container = document.getElementById('tableContainer');
 
-    <div id="tableContainer">
-        </div>
-</div>
+            try {
+                // Fetch data from YOUR Vercel API
+                const response = await fetch('/api/key');
+                const result = await response.json();
 
-<script>
-    async function startMonitor() {
-        const statusEl = document.getElementById('systemStatus');
-        const errorEl = document.getElementById('errorDisplay');
-        const tableContainer = document.getElementById('tableContainer');
+                if (!result.success) {
+                    status.classList.add('error');
+                    status.innerText = "ERROR: " + result.error;
+                    return;
+                }
 
-        try {
-            // 1. Fetch the credentials from your Vercel API
-            const response = await fetch('/api/key');
-            if (!response.ok) throw new Error("API Route /api/key not found or failing.");
-            
-            const config = await response.json();
-            
-            // 2. Initialize Supabase
-            const supabaseClient = supabase.createClient(config.url, config.anonKey);
+                status.innerText = `SUCCESS: Connected to 'whitelist'. Records: ${result.data.length}`;
 
-            // 3. Query the 'whitelist' table discovered in loadmenu.lua
-            statusEl.innerText = "Scanning Table: [whitelist]...";
-            const { data, error } = await supabaseClient
-                .from('whitelist')
-                .select('*')
-                .order('created_at', { ascending: false });
+                // Build the table
+                if (result.data.length > 0) {
+                    let html = `<table><thead><tr>`;
+                    Object.keys(result.data[0]).forEach(key => html += `<th>${key}</th>`);
+                    html += `</tr></thead><tbody>`;
+                    
+                    result.data.forEach(row => {
+                        html += `<tr>`;
+                        Object.values(row).forEach(val => html += `<td>${val}</td>`);
+                        html += `</tr>`;
+                    });
+                    html += `</tbody></table>`;
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = "<p>Database table is empty.</p>";
+                }
 
-            if (error) throw error;
-
-            if (data && data.length > 0) {
-                statusEl.innerHTML = `Status: <span style="color:#00ff41">CONNECTED</span> | Records Found: ${data.length}`;
-                
-                // 4. Generate the Table UI
-                let tableHtml = `<table><thead><tr>`;
-                // Create headers from keys of the first record
-                Object.keys(data[0]).forEach(key => tableHtml += `<th>${key}</th>`);
-                tableHtml += `</tr></thead><tbody>`;
-                
-                // Populate rows
-                data.forEach(row => {
-                    tableHtml += `<tr>`;
-                    Object.values(row).forEach(val => tableHtml += `<td>${val || 'NULL'}</td>`);
-                    tableHtml += `</tr>`;
-                });
-                
-                tableHtml += `</tbody></table>`;
-                tableContainer.innerHTML = tableHtml;
-            } else {
-                statusEl.innerText = "Connection successful, but the [whitelist] table is currently empty.";
+            } catch (err) {
+                status.classList.add('error');
+                status.innerText = "CRITICAL: " + err.message;
             }
-
-        } catch (err) {
-            statusEl.innerText = "CONNECTION FAILED";
-            errorEl.innerHTML = `<div class="error-msg"><strong>Error:</strong> ${err.message}</div>`;
-            console.error(err);
         }
-    }
-
-    window.onload = startMonitor;
-</script>
-
+        loadKeys();
+    </script>
 </body>
 </html>
