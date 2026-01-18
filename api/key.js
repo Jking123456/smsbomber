@@ -1,37 +1,35 @@
 import { createClient } from '@supabase/supabase-js'
 
 export default async function handler(req, res) {
-  // Use these exact names from your Vercel Dashboard
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_ANON_KEY;
+  // Pulling from Vercel Dashboard Environment Variables
+  const SUPABASE_URL = process.env.SUPABASE_URL;
+  const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
-  // 1. Safety Check: If these are missing, the server will tell us why
-  if (!url || !key) {
+  // 1. Check if variables are loaded
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     return res.status(200).json({ 
       success: false, 
-      error: "Variables Missing: Go to Vercel Settings and ensure SUPABASE_URL and SUPABASE_ANON_KEY are added, then Redeploy." 
+      error: "Environment Variables Missing in Vercel Dashboard." 
     });
   }
 
   try {
-    const supabase = createClient(url, key);
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // 2. Fetch from 'whitelist' (The table we found in loadmenu.lua)
+    // 2. Fetch data from the 'whitelist' table
     const { data, error } = await supabase
       .from('whitelist')
       .select('*')
-      .limit(50);
+      .order('created_at', { ascending: false }) // Show newest keys first
+      .limit(100);
 
     if (error) {
-      return res.status(200).json({ success: false, error: error.message });
+        return res.status(200).json({ success: false, error: error.message });
     }
 
     return res.status(200).json({ success: true, data: data });
 
   } catch (err) {
-    return res.status(200).json({ 
-      success: false, 
-      error: "Connection Failed: " + err.message 
-    });
+    return res.status(200).json({ success: false, error: "Server Error: " + err.message });
   }
 }
