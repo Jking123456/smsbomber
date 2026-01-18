@@ -1,15 +1,20 @@
 // api/key.js
-export default function handler(req, res) {
-  // We use process.env for security on Vercel
-  const SUPABASE_URL = process.env.SUPABASE_URL;
-  const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+import { createClient } from '@supabase/supabase-js'
 
-  if (req.method === 'GET') {
-    res.status(200).json({
-      url: SUPABASE_URL,
-      anonKey: SUPABASE_ANON_KEY,
-    });
-  } else {
-    res.status(405).json({ message: 'Method Not Allowed' });
+export default async function handler(req, res) {
+  const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_ANON_KEY
+  );
+
+  try {
+    // We fetch the data here in the backend where there is no CORS block
+    const { data, error } = await supabase.from('whitelist').select('*');
+    
+    if (error) throw error;
+
+    res.status(200).json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 }
