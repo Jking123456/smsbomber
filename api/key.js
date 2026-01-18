@@ -1,31 +1,29 @@
 import { createClient } from '@supabase/supabase-js'
 
 export default async function handler(req, res) {
-  // Use the full credentials we extracted
-  const SUPABASE_URL = process.env.SUPABASE_URL;
-  const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_ANON_KEY;
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // Safety check: If variables are missing, don't crash, just tell us.
+  if (!url || !key) {
+    return res.status(200).json({ 
+      success: false, 
+      error: "Missing Environment Variables in Vercel Dashboard." 
+    });
+  }
+
+  const supabase = createClient(url, key);
 
   try {
-    // We try to fetch from 'whitelist' found in loadmenu.lua
-    const { data, error } = await supabase
-      .from('whitelist') 
-      .select('*')
-      .limit(10); // Limit to 10 rows to prevent timeouts
+    // Try to get data from 'whitelist' (the table found in loadmenu.lua)
+    const { data, error } = await supabase.from('whitelist').select('*').limit(5);
 
     if (error) {
-      // If the table name is wrong, this sends the error instead of crashing
-      return res.status(200).json({ 
-        success: false, 
-        error: error.message,
-        hint: "Check if the table name 'whitelist' exists in the DB." 
-      });
+      return res.status(200).json({ success: false, error: error.message });
     }
 
-    res.status(200).json({ success: true, data: data });
-
+    return res.status(200).json({ success: true, data: data });
   } catch (err) {
-    res.status(500).json({ success: false, error: "Server Timeout or Config Error" });
+    return res.status(200).json({ success: false, error: "Internal Server Error" });
   }
 }
