@@ -1,66 +1,49 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>RUDO DELUXE | KEY TRACKER</title>
+    <title>RUDO MONITOR</title>
     <style>
-        body { background: #050505; color: #00ff41; font-family: monospace; padding: 30px; }
-        .box { border: 1px solid #00ff41; padding: 20px; background: #111; margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #222; padding: 12px; text-align: left; }
-        th { background: #1a1a1a; color: #fff; }
-        tr:hover { background: #151515; }
-        .error { color: #ff4444; border-color: #ff4444; }
+        body { background: #000; color: #00ff41; font-family: monospace; padding: 20px; }
+        .status { border: 1px solid #00ff41; padding: 15px; background: #111; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #333; padding: 10px; text-align: left; }
+        th { color: white; background: #222; }
     </style>
 </head>
 <body>
-    <h1>> RUDO_DATABASE_MONITOR_v2</h1>
-    
-    <div id="statusBox" class="box">Status: Connecting to Proxy...</div>
-
-    <div id="tableContainer"></div>
+    <h1>> RUDO_DATABASE_LIVE</h1>
+    <div id="status" class="status">Status: Connecting to Vercel...</div>
+    <div id="output"></div>
 
     <script>
-        async function loadKeys() {
-            const status = document.getElementById('statusBox');
-            const container = document.getElementById('tableContainer');
-
+        async function load() {
             try {
-                // Fetch data from YOUR Vercel API
-                const response = await fetch('/api/key');
-                const result = await response.json();
-
+                const res = await fetch('/api/key');
+                const result = await res.json();
+                
                 if (!result.success) {
-                    status.classList.add('error');
-                    status.innerText = "ERROR: " + result.error;
+                    document.getElementById('status').innerHTML = "ERROR: " + result.error;
                     return;
                 }
 
-                status.innerText = `SUCCESS: Connected to 'whitelist'. Records: ${result.data.length}`;
-
-                // Build the table
+                document.getElementById('status').innerText = "ONLINE: Found " + result.data.length + " keys.";
+                
                 if (result.data.length > 0) {
-                    let html = `<table><thead><tr>`;
-                    Object.keys(result.data[0]).forEach(key => html += `<th>${key}</th>`);
-                    html += `</tr></thead><tbody>`;
-                    
+                    let html = '<table><thead><tr>';
+                    Object.keys(result.data[0]).forEach(k => html += `<th>${k}</th>`);
+                    html += '</tr></thead><tbody>';
                     result.data.forEach(row => {
-                        html += `<tr>`;
-                        Object.values(row).forEach(val => html += `<td>${val}</td>`);
-                        html += `</tr>`;
+                        html += '<tr>';
+                        Object.values(row).forEach(v => html += `<td>${v}</td>`);
+                        html += '</tr>';
                     });
-                    html += `</tbody></table>`;
-                    container.innerHTML = html;
-                } else {
-                    container.innerHTML = "<p>Database table is empty.</p>";
+                    document.getElementById('output').innerHTML = html + '</tbody></table>';
                 }
-
-            } catch (err) {
-                status.classList.add('error');
-                status.innerText = "CRITICAL: " + err.message;
+            } catch (e) {
+                document.getElementById('status').innerText = "CORS or Network Error: " + e.message;
             }
         }
-        loadKeys();
+        load();
     </script>
 </body>
 </html>
